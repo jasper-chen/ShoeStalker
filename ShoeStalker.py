@@ -29,6 +29,7 @@ class ShoeStalker:
 		#return location of shoes
 
 	def stalk(self):
+		#move robot so shoe is in center of image (or will it already be like this?)
 		#move towards the shoes
 
 	def lostshoe():
