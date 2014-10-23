@@ -1,9 +1,26 @@
 import cv2
 import numpy as np
 
+from matplotlib import pyplot as plt
+
 class ShoeStalker:
 
 	def __init__(self):
+
+	def capture(self):
+		#take picture of shoe 
+		capture = cv.CaptureFromCAM(0)
+		img = cv.QueryFrame(capture)
+		plt.imshow(img, cmap = 'gray', interpolation = 'bicubic') # shows image
+		#save image to specific location
+		cv.SaveImage("captured_shoe",img)
+		#read back image (necessary?)
+		img = cv2.imread('captured_shoe')
+		    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+		# When everything done, release the capture
+		cap.release()
+		cv2.destroyAllWindows() #perhaps we don't want this? 
 
 	def detect(self):
 		#find the shoe
