@@ -1,3 +1,8 @@
+"""
+October ___, A worked on camera capture things.
+
+October 23, J+C 
+"""
 import cv2
 import numpy as np
 
@@ -20,7 +25,7 @@ class ShoeStalker:
         break
 		# When everything done, release the capture
 		cap.release()
-		cv2.destroyAllWindows() #perhaps we don't want this? 
+		#cv2.destroyAllWindows() #perhaps we don't want this? Don't want this till the end
 
 	def detect(self):
 		#find the shoe
