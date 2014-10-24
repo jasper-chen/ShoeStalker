@@ -1,7 +1,7 @@
 """
 October ___, A worked on camera capture things.
 
-October 23, J+C 
+October 23, J+C added finding keypoints code. worked with rosbag
 """
 import cv2
 import numpy as np
