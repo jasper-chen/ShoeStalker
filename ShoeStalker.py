@@ -39,18 +39,23 @@ class ShoeStalker:
 		cap.release()
 		#cv2.destroyAllWindows() #perhaps we don't want this? Don't want this till the end
 
-	def get_keypoints(self):
+	def get_new_keypoints(self):
 		#makes new image black and white
 		new_imgbw = cv2.cvtColor(self.new_img,cv2.COLOR_BGR2GREY)
+		#detect keypoints
 		keyp = self.detector.detect(new_imgbw)
-		keyp = [pt
-			  for pt in kp if (pt.response > self.corner_threshold and
-							   self.query_region[0] <= pt.pt[0] < self.query_region[2] and
-							   self.query_region[1] <= pt.pt[1] < self.query_region[3])]
-		dc, des = self.extractor.compute(new_imgbw,keyp)
-		#remap so relative to region
+		#compare keypoints
+		keyp = [point
+			  for point in keyp if (point.response > self.corner_threshold and
+							   self.query_region[0] <= point.point[0] < self.query_region[2] and
+							   self.query_region[1] <= point.point[1] < self.query_region[3])]
+		dc, describe = self.extractor.compute(new_imgbw,keyp)
+		#remap keypoints so relative to new region
 		for point in keyp:
 			point.point = (point.point[0] - self.new_region[0],point.point[1] - self.new_region[1])
+		#reassign keypoints and descriptors
+		self.new_keypoints = keyp
+		self.new_descriptors = describe
 
 	def detect(self):
 		#find the shoe
