@@ -1,8 +1,14 @@
+#!/usr/bin/env python
+
 """
 October ___, A worked on camera capture things.
 
-October 23, J+C added finding keypoints code. worked with rosbag
+October 23, J+C added finding keypoints code. worked with rosbag.
+
+October 24, C - Code runs!! HUZZAH. Doesn't do anything yet. Working on keypoints stuff. See pauls_track_object.py for possible understanding?
+
 """
+import rospy
 import cv2
 import numpy as np
 
@@ -33,8 +39,9 @@ class ShoeStalker:
 		cv.SaveImage("captured_shoe",img)
 		#read back image (necessary?)
 		img = cv2.imread('captured_shoe')
-		    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+		if cv2.waitKey(1) & 0xFF == ord('q'):
+			print 'break'
+			#break
 		# When everything done, release the capture
 		cap.release()
 		#cv2.destroyAllWindows() #perhaps we don't want this? Don't want this till the end
@@ -58,23 +65,29 @@ class ShoeStalker:
 		self.new_descriptors = describe
 
 	def detect(self):
+		print 'detect'
 		#find the shoe
 
 		#compare keypoints/color to shoe database
 		#return location of shoes
 
 	def stalk(self):
+		print 'stalk'
 		#move robot so shoe is in center of image (or will it already be like this?)
 		#move towards the shoes
 
-	def lostshoe():
+	def lostshoe(self):
+		print 'lost shoe'
 		#refind a lost shoe, turn towards location of last view
 
+	def run(self):
+		capture = cv2.VideoCapture(0)
+		ret, frame = capture.read()
+		cv2.namedWindow('image')
+		cv2.imshow("image",frame)
+
 if __name__ == '__main__':
-	tracker = ShoeStalker('SIFT')
-
-	capture = cv2.VideoCapture(0)
-	ret, frame = capture.read()
-	cv2.namedWindow('image')
-	cv2.imshow("image",frame)
-
+	try:
+		n = ShoeStalker('SIFT')
+		n.run() 
+	except rospy.ROSInterruptException: pass
