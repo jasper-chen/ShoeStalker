@@ -24,7 +24,7 @@ class ShoeStalker:
 		self.detector = cv2.FeatureDetector_create(descriptor)
 		self.extractor = cv2.DescriptorExtractor_create(descriptor)
 		self.matcher = cv2.BFMatcher()
-		self.new_img = None
+		self.new_img = cv2.imread('../')
 		self.new_region = None
 		self.last_detection = None
 
@@ -77,7 +77,7 @@ class ShoeStalker:
 	def detect(self):
 		print 'detect'
 
-		#compare image of the shoe to shoe database (color histogram/SIFT technique) (this may be very time-consuming)
+		#compare query of shoe to shoe references (color histogram/SIFT technique) (this may be very time-consuming)
 		#pick shoe by image of shoe with the most keypoints
 		#return location of shoes (I think it might be easier to use one location of a shoe)
 
@@ -103,6 +103,8 @@ rospy.spin()
 
 	try:
 		n = ShoeStalker('SIFT')
-		n.run() 
+		n.run()
+		#load image
+		#show image
+		#plot keypoints
 	except rospy.ROSInterruptException: pass
-
