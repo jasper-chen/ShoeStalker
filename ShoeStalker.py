@@ -9,7 +9,8 @@ October 24, C - Code runs!! HUZZAH. Doesn't do anything yet. Working on keypoint
 
 October 28, J - learned about implementing color histogram and SIFT.
 
-October 28, A - implementing subscribers for image from Neato 
+October 28, A - implementing subscribers for image from Neato. added ability to 
+				choose region in image 
 
 """
 import rospy
