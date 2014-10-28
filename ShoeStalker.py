@@ -108,9 +108,12 @@ class ShoeStalker:
 		#move robot so shoe is in center of image (or will it already be like this?)
 		#move towards the shoes
 
-		#linear = .5
-		#angular = xpos * something depending on what the units of xpos are
-		#pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
+		#if xpos > 0:
+			#linear = .5
+			#angular = xpos * something depending on what the units of xpos are
+			#pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
+		#else:
+			#self.lostshoe()
 
 	def lostshoe(self):
 		print 'lost shoe'
