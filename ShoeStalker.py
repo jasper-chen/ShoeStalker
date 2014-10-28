@@ -9,8 +9,7 @@ October 24, C - Code runs!! HUZZAH. Doesn't do anything yet. Working on keypoint
 
 October 28, J - learned about implementing color histogram and SIFT.
 
-October 28, A - implementing subscribers for image from Neato. added ability to 
-				choose region in image 
+October 28, A - implementing subscribers for image from Neato 
 
 """
 import rospy
@@ -20,12 +19,9 @@ import numpy as np
 from geometry_msgs.msg import Twist, Vector3
 from matplotlib import pyplot as plt
 from sensor_msgs.msg import Image
-from std_msgs.msg import String
 
 class ShoeStalker:
 	SELECTING_NEW_IMG = 0
-	SELECTING_SHOE_PT_1 = 1
-	SELECTING_SHOE_PT_2 = 2
 
 	def __init__(self,descriptor):
 		self.detector = cv2.FeatureDetector_create(descriptor)
@@ -37,27 +33,18 @@ class ShoeStalker:
 
 		self.corner_threshold = 0.0
 		self.ratio_threshold = 1.0
+
 		self.state = ShoeStalker.SELECTING_NEW_IMG
 
-		#for image capture 
-		self.camera_listener = rospy.Subscriber("camera/image_raw", Image)
+		# will need to change the object part of this depending on what our object is...
+		self.camera_listener = rospy.Subscriber("camera/image_raw", Image, self.pauls_track_object)
 		self.bridge = CvBridge()
-		
-		self.query_img = None
-		self.query_region = None
-		self.last_detection = None
-
-		self.state = ShoeStalker.SELECTING_NEW_IMG
 
 	def capture(self,msg):
 		# for using the image from the Neato 
 		#useful link for image types http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
 		cv_Shoeimage = self.bridge.imgmsg_to_cv2(msg, "bgr8")
 		Shoeimage = np.array(cv_Shoeimage)
-
-		# set up the ROI for tracking
-		region = self.query_img[self.query_region[1]:self.query_region[3],self.query_region[0]:self.query_region[2],:]
-		hsv_region =  cv2.cvtColor(region, cv2.COLOR_BGR2HSV)
 
 		# #To use with the webcam - for testing 
 		# #take picture of shoe 
@@ -89,8 +76,8 @@ class ShoeStalker:
 		#compare keypoints
 		keyp = [point
 			  for point in keyp if (point.response > self.corner_threshold and
-							   self.query_region[0] <= point.point[0] < self.query_region[2] and
-							   self.query_region[1] <= point.point[1] < self.query_region[3])]
+							   self.new_region[0] <= point.point[0] < self.new_region[2] and
+							   self.new_region[1] <= point.point[1] < self.new_region[3])]
 		dc, describe = self.extractor.compute(new_imgbw,keyp)
 		#remap keypoints so relative to new region
 		for point in keyp:
@@ -102,14 +89,22 @@ class ShoeStalker:
 	def detect(self):
 		print 'detect'
 
+		keypoints = self.new_keypoints
+
 		#compare image of the shoe to shoe database (color histogram/SIFT technique) (this may be very time-consuming)
 		#pick shoe by image of shoe with the most keypoints
 		#return location of shoes (I think it might be easier to use one location of a shoe)
 
-	def stalk(self,xpos): #potentially add distance to shoe if that happens
+		xpos = 0
+		distance = 0
+		return xpos,distance
+
+	def stalk(self): #potentially add distance to shoe if that happens
 		print 'stalk'
 		#move robot so shoe is in center of image (or will it already be like this?)
 		#move towards the shoes
+
+		#xpos,distance = self.detect()
 
 		#if xpos > 0:
 			#linear = .5
@@ -124,7 +119,7 @@ class ShoeStalker:
 		#currently just turning
 
 		#linear = 0
-		#angular = 0.4
+		#angular = .8
 		#pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
 
 	def run(self):
