@@ -14,6 +14,7 @@ import rospy
 import cv2
 import numpy as np
 
+from geometry_msgs.msg import Twist, Vector3
 from matplotlib import pyplot as plt
 from sensor_msgs.msg import Image
 
@@ -33,7 +34,7 @@ class ShoeStalker:
 
 		self.state = ShoeStalker.SELECTING_NEW_IMG
 		# will need to change the object part of this depending on what our object is...
-		self.camera_listener = rospy.Subscriber("camera/image_raw", Image, self.pauls_track_object)
+		self.camera_listener = rospy.Subscriber("camera/image_raw", Image)#, self.pauls_track_object)
 		self.bridge = CvBridge()
 
 	def capture(self):
@@ -92,17 +93,23 @@ class ShoeStalker:
 	def lostshoe(self):
 		print 'lost shoe'
 		#refind a lost shoe, turn towards location of last view
+		#currently just turning
+
+		#linear = 0
+		#angular = .8
+		#pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
 
 	def run(self):
+		print 'run'
 		capture = cv2.VideoCapture(0)
 		ret, frame = capture.read()
 		cv2.namedWindow('image')
 		cv2.imshow("image",frame)
 
 if __name__ == '__main__':
-	
-rospy.init_node('ShoeStalker', anonymous = True )
-rospy.spin()
+	pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
+	rospy.init_node('ShoeStalker', anonymous = True )
+	rospy.spin()
 
 	try:
 		n = ShoeStalker('SIFT')
