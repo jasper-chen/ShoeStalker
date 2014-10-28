@@ -18,6 +18,7 @@ import numpy as np
 
 from matplotlib import pyplot as plt
 from sensor_msgs.msg import Image
+from std_msgs.msg import String
 
 class ShoeStalker:
 	SELECTING_NEW_IMG = 0
