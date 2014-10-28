@@ -96,8 +96,10 @@ class ShoeStalker:
 		self.new_keypoints = keyp
 		self.new_descriptors = describe
 
-	def detect(self):
+	def detect(self, new_keypoints, new_descriptors):
 		print 'detect'
+
+
 
 		#compare image of the shoe to shoe database (color histogram/SIFT technique) (this may be very time-consuming)
 		#pick shoe by image of shoe with the most keypoints
@@ -144,6 +146,24 @@ class ShoeStalker:
 		rospy.init_node('ShoeStalker', anonymous = True )
 		pub.publish('a')
 		rospy.spin()
+
+	def mouse_event():
+		if event == cv2.EVENT_FLAG_LBUTTON:
+			if tracker.state == tracker.SELECTING_QUERY_IMG:
+				tracker.query_img_visualize = frame.copy()
+				tracker.query_img = frame
+				tracker.query_region = None
+				tracker.state = tracker.SELECTING_REGION_PT_1
+			elif tracker.state == tracker.SELECTING_REGION_PT_1:
+				tracker.query_region = [x,y,-1,-1]
+				cv2.circle(tracker.query_img_visualize,(x,y),5,(255,0,0),5)
+				tracker.state = tracker.SELECTING_ROI_PT_2
+			else:
+				tracker.query_region[2:] = [x,y]
+				tracker.last_detection = tracker.query_region
+				cv2.circle(tracker.query_img_visualize,(x,y),5,(255,0,0),5)
+				tracker.state = tracker.SELECTING_QUERY_IMG
+				tracker.get_query_keypoints()		
 
 if __name__ == '__main__':
 	try:
