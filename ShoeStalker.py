@@ -9,6 +9,8 @@ October 24, C - Code runs!! HUZZAH. Doesn't do anything yet. Working on keypoint
 
 October 28, J - learned about implementing color histogram and SIFT.
 
+October 28, A - implementing subscribers for image from Neato 
+
 """
 import rospy
 import cv2
@@ -24,7 +26,7 @@ class ShoeStalker:
 		self.detector = cv2.FeatureDetector_create(descriptor)
 		self.extractor = cv2.DescriptorExtractor_create(descriptor)
 		self.matcher = cv2.BFMatcher()
-		self.new_img = cv2.imread('../')
+		self.new_img = None
 		self.new_region = None
 		self.last_detection = None
 
@@ -77,7 +79,7 @@ class ShoeStalker:
 	def detect(self):
 		print 'detect'
 
-		#compare query of shoe to shoe references (color histogram/SIFT technique) (this may be very time-consuming)
+		#compare image of the shoe to shoe database (color histogram/SIFT technique) (this may be very time-consuming)
 		#pick shoe by image of shoe with the most keypoints
 		#return location of shoes (I think it might be easier to use one location of a shoe)
 
@@ -103,8 +105,6 @@ rospy.spin()
 
 	try:
 		n = ShoeStalker('SIFT')
-		n.run()
-		#load image
-		#show image
-		#plot keypoints
+		n.run() 
 	except rospy.ROSInterruptException: pass
+
