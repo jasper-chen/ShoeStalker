@@ -7,6 +7,8 @@ October 23, J+C added finding keypoints code. worked with rosbag.
 
 October 24, C - Code runs!! HUZZAH. Doesn't do anything yet. Working on keypoints stuff. See pauls_track_object.py for possible understanding?
 
+October 28, J - learned about implementing color histogram and SIFT.
+
 """
 import rospy
 import cv2
@@ -66,10 +68,10 @@ class ShoeStalker:
 
 	def detect(self):
 		print 'detect'
-		#find the shoe
 
-		#compare keypoints/color to shoe database
-		#return location of shoes
+		#compare image of the shoe to shoe database (color histogram/SIFT technique) (this may be very time-consuming)
+		#pick shoe by image of shoe with the most keypoints
+		#return location of shoes (I think it might be easier to use one location of a shoe)
 
 	def stalk(self):
 		print 'stalk'
