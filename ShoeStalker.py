@@ -9,8 +9,7 @@ October 24, C - Code runs!! HUZZAH. Doesn't do anything yet. Working on keypoint
 
 October 28, J - learned about implementing color histogram and SIFT.
 
-October 28, A - implementing subscribers for image from Neato. added ability to 
-				choose region in image 
+October 28, A - added capability of reading image from Neato stream. added mouse events function.  
 
 """
 import rospy
@@ -20,12 +19,9 @@ import numpy as np
 from geometry_msgs.msg import Twist, Vector3
 from matplotlib import pyplot as plt
 from sensor_msgs.msg import Image
-from std_msgs.msg import String
 
 class ShoeStalker:
 	SELECTING_NEW_IMG = 0
-	SELECTING_SHOE_PT_1 = 1
-	SELECTING_SHOE_PT_2 = 2
 
 	def __init__(self,descriptor):
 
@@ -38,19 +34,25 @@ class ShoeStalker:
 
 		self.corner_threshold = 0.0
 		self.ratio_threshold = 1.0
+
 		self.state = ShoeStalker.SELECTING_NEW_IMG
 
 		try:
-		#for image capture 
-		self.camera_listener = rospy.Subscriber("camera/image_raw", Image)
-		self.bridge = CvBridge()
+
+			#for image capture 
+			self.camera_listener = rospy.Subscriber("camera/image_raw", Image)
+			self.bridge = CvBridge()
 		except AttributeError:
+			pass	
+
+		try:
+			self.bridge = CvBridge()
+		except NameError:
 			pass
 		
 		self.new_img = None
 		self.new_region = None
 		self.last_detection = None
-
 
 	def capture(self,msg):
 		# for using the image from the Neato 
@@ -80,7 +82,7 @@ class ShoeStalker:
 	def get_new_keypoints(self):
 		#makes new image black and white
 
-		new_imgbw = cv2.cvtColor(self.new_img,cv2.COLOR_BGR2GREY)
+		new_imgbw = cv2.cvtColor(self.new_img,cv2.COLOR_BGR2GRAY)
 		#detect keypoints
 		keyp = self.detector.detect(new_imgbw)
 		#compare keypoints
@@ -99,16 +101,22 @@ class ShoeStalker:
 	def detect(self, new_keypoints, new_descriptors):
 		print 'detect'
 
-		
+		keypoints = self.new_keypoints
 
 		#compare image of the shoe to shoe database (color histogram/SIFT technique) (this may be very time-consuming)
 		#pick shoe by image of shoe with the most keypoints
 		#return location of shoes (I think it might be easier to use one location of a shoe)
 
-	def stalk(self,xpos): #potentially add distance to shoe if that happens
+		xpos = 0
+		distance = 0
+		return xpos,distance
+
+	def stalk(self): #potentially add distance to shoe if that happens
 		print 'stalk'
 		#move robot so shoe is in center of image (or will it already be like this?)
 		#move towards the shoes
+
+		#xpos,distance = self.detect()
 
 		#if xpos > 0:
 			#linear = .5
@@ -123,7 +131,7 @@ class ShoeStalker:
 		#currently just turning
 
 		#linear = 0
-		#angular = 0.4
+		#angular = .8
 		#pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
 
 	def run(self):
@@ -169,9 +177,8 @@ if __name__ == '__main__':
 	try:
 		n = ShoeStalker('SIFT')
 		n.image()
+		n.get_new_keypoints()
+
+
 		n.publisher()
-		
-		#load image
-		#show image
-		#plot keypoints
 	except rospy.ROSInterruptException: pass
