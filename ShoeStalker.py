@@ -42,12 +42,18 @@ class ShoeStalker:
 
 		try:
 		#for image capture 
-		self.camera_listener = rospy.Subscriber("camera/image_raw", Image)
-		self.bridge = CvBridge()
+			self.camera_listener = rospy.Subscriber("camera/image_raw", Image)
 		except AttributeError:
+			pass	
+
+		try:
+			self.bridge = CvBridge()
+		except NameError:
 			pass
-		
-		self.query_img = None
+
+		#test
+		self.query_img = self.new_img
+		#self.query_img = self.new_img
 		self.query_region = None
 		self.last_detection = None
 
@@ -80,7 +86,7 @@ class ShoeStalker:
 	def get_new_keypoints(self):
 		#makes new image black and white
 
-		new_imgbw = cv2.cvtColor(self.new_img,cv2.COLOR_BGR2GREY)
+		new_imgbw = cv2.cvtColor(self.new_img,cv2.COLOR_BGR2GRAY)
 		#detect keypoints
 		keyp = self.detector.detect(new_imgbw)
 		#compare keypoints
@@ -149,9 +155,8 @@ if __name__ == '__main__':
 	try:
 		n = ShoeStalker('SIFT')
 		n.image()
+		n.get_new_keypoints()
+
+
 		n.publisher()
-		
-		#load image
-		#show image
-		#plot keypoints
 	except rospy.ROSInterruptException: pass
