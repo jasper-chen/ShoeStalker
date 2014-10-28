@@ -27,7 +27,7 @@ class ShoeStalker:
 		self.detector = cv2.FeatureDetector_create(descriptor)
 		self.extractor = cv2.DescriptorExtractor_create(descriptor)
 		self.matcher = cv2.BFMatcher()
-		self.new_img = None
+		self.new_img = cv2.imread('./shoefront/frame0000.jpg')
 		self.new_region = None
 		self.last_detection = None
 
@@ -35,12 +35,9 @@ class ShoeStalker:
 		self.ratio_threshold = 1.0
 
 		self.state = ShoeStalker.SELECTING_NEW_IMG
-<<<<<<< HEAD
+
 		# will need to change the object part of this depending on what our object is...
 		self.camera_listener = rospy.Subscriber("camera/image_raw", Image, self.pauls_track_object)
-=======
-		self.camera_listener = rospy.Subscriber("camera/image_raw", Image)
->>>>>>> d5f71ad882093166f32ec548c8a2d4c60110fa11
 		self.bridge = CvBridge()
 
 	def capture(self,msg):
@@ -66,6 +63,13 @@ class ShoeStalker:
 
 	def get_new_keypoints(self):
 		#makes new image black and white
+		#print 'hello'
+		print 'la'
+		cv2.namedWindow('image')
+		cv2.imshow('image',self.new_img)
+		#cv2.waitKey(0)
+		#cv2.destroyAllWindows()
+
 		new_imgbw = cv2.cvtColor(self.new_img,cv2.COLOR_BGR2GREY)
 		#detect keypoints
 		keyp = self.detector.detect(new_imgbw)
@@ -121,6 +125,10 @@ if __name__ == '__main__':
 
 	try:
 		n = ShoeStalker('SIFT')
-		n.run() 
+		n.get_new_keypoints()
+		n.run()
+		#load image
+		#show image
+		#plot keypoints
 	except rospy.ROSInterruptException: pass
 
