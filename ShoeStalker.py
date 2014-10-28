@@ -47,8 +47,8 @@ class ShoeStalker:
 		except AttributeError:
 			pass
 		
-		self.query_img = None
-		self.query_region = None
+		self.new_img = None
+		self.new_region = None
 		self.last_detection = None
 
 
@@ -59,13 +59,13 @@ class ShoeStalker:
 		Shoeimage = np.array(cv_Shoeimage)
 
 		# set up the ROI for tracking
-		region = self.query_img[self.query_region[1]:self.query_region[3],self.query_region[0]:self.query_region[2],:]
+		region = self.new_img[self.new_region[1]:self.new_region[3],self.new_region[0]:self.new_region[2],:]
 		hsv_region =  cv2.cvtColor(region, cv2.COLOR_BGR2HSV)
 
 		# #To use with the webcam - for testing 
 		# #take picture of shoe 
 		# capture = cv.CaptureFromCAM(0)
-		# img = cv.QueryFrame(capture)
+		# img = cv.NewFrame(capture)
 		# plt.imshow(img, cmap = 'gray', interpolation = 'bicubic') # shows image
 		# #save image to specific location
 		# cv.SaveImage("captured_shoe",img)
@@ -86,8 +86,8 @@ class ShoeStalker:
 		#compare keypoints
 		keyp = [point
 			  for point in keyp if (point.response > self.corner_threshold and
-							   self.query_region[0] <= point.point[0] < self.query_region[2] and
-							   self.query_region[1] <= point.point[1] < self.query_region[3])]
+							   self.new_region[0] <= point.point[0] < self.new_region[2] and
+							   self.new_region[1] <= point.point[1] < self.new_region[3])]
 		dc, describe = self.extractor.compute(new_imgbw,keyp)
 		#remap keypoints so relative to new region
 		for point in keyp:
@@ -99,7 +99,7 @@ class ShoeStalker:
 	def detect(self, new_keypoints, new_descriptors):
 		print 'detect'
 
-
+		
 
 		#compare image of the shoe to shoe database (color histogram/SIFT technique) (this may be very time-consuming)
 		#pick shoe by image of shoe with the most keypoints
@@ -147,23 +147,23 @@ class ShoeStalker:
 		pub.publish('a')
 		rospy.spin()
 
-	def mouse_event():
+	def mouse_event(event, x):
 		if event == cv2.EVENT_FLAG_LBUTTON:
-			if tracker.state == tracker.SELECTING_QUERY_IMG:
-				tracker.query_img_visualize = frame.copy()
-				tracker.query_img = frame
-				tracker.query_region = None
+			if tracker.state == tracker.SELECTING_NEW_IMG:
+				tracker.new_img_visualize = frame.copy()
+				tracker.new_img = frame
+				tracker.new_region = None
 				tracker.state = tracker.SELECTING_REGION_PT_1
 			elif tracker.state == tracker.SELECTING_REGION_PT_1:
-				tracker.query_region = [x,y,-1,-1]
-				cv2.circle(tracker.query_img_visualize,(x,y),5,(255,0,0),5)
+				tracker.new_region = [x,y,-1,-1]
+				cv2.circle(tracker.new_img_visualize,(x,y),5,(255,0,0),5)
 				tracker.state = tracker.SELECTING_ROI_PT_2
 			else:
-				tracker.query_region[2:] = [x,y]
-				tracker.last_detection = tracker.query_region
-				cv2.circle(tracker.query_img_visualize,(x,y),5,(255,0,0),5)
-				tracker.state = tracker.SELECTING_QUERY_IMG
-				tracker.get_query_keypoints()		
+				tracker.new_region[2:] = [x,y]
+				tracker.last_detection = tracker.new_region
+				cv2.circle(tracker.new_img_visualize,(x,y),5,(255,0,0),5)
+				tracker.state = tracker.SELECTING_NEW_IMG
+				tracker.get_new_keypoints()		
 
 if __name__ == '__main__':
 	try:
