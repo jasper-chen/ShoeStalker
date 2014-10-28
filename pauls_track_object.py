@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+"""
+Copy of pauls track object code to play with.
+
+October 24, C - Working on making sure i understand how it all works. variables renamed. comments added.
+"""
+
 import cv2
 import pickle
 import numpy as np
@@ -38,12 +44,12 @@ class ObjectTracker:
 			  for point in kp if (point.response > self.corner_threshold and
 							   self.query_region[0] <= point.point[0] < self.query_region[2] and
 							   self.query_region[1] <= point.point[1] < self.query_region[3])]
-		dc, describer = self.extractor.compute(query_img_bw,kp)
+		dc, des = self.extractor.compute(query_img_bw,kp)
 		# remap keypoints so they are relative to the query region
 		for point in kp:
 			point.point = (point.point[0] - self.query_region[0], point.point[1] - self.query_region[1])
 		self.query_keypoints = kp
-		self.query_descriptors = describer
+		self.query_descriptors = des
 
 	def track(self,im):
 		im_bw = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)

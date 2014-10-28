@@ -16,6 +16,7 @@ import rospy
 import cv2
 import numpy as np
 
+from geometry_msgs.msg import Twist, Vector3
 from matplotlib import pyplot as plt
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
@@ -35,6 +36,7 @@ class ShoeStalker:
 		self.ratio_threshold = 1.0
 
 		self.state = ShoeStalker.SELECTING_NEW_IMG
+
 		# will need to change the object part of this depending on what our object is...
 		self.camera_listener = rospy.Subscriber("camera/image_raw", Image, self.pauls_track_object)
 		self.bridge = CvBridge()
@@ -92,23 +94,33 @@ class ShoeStalker:
 		#pick shoe by image of shoe with the most keypoints
 		#return location of shoes (I think it might be easier to use one location of a shoe)
 
-	def stalk(self):
+	def stalk(self,xpos): #potentially add distance to shoe if that happens
 		print 'stalk'
 		#move robot so shoe is in center of image (or will it already be like this?)
 		#move towards the shoes
 
+		#linear = .5
+		#angular = xpos * something depending on what the units of xpos are
+		#pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
+
 	def lostshoe(self):
 		print 'lost shoe'
 		#refind a lost shoe, turn towards location of last view
+		#currently just turning
 
-	#def run(self):
-		#capture = cv2.VideoCapture(0)
-		#ret, frame = capture.read()
-		#cv2.namedWindow('image')
-		#cv2.imshow("image",frame)
+		#linear = 0
+		#angular = .8
+		#pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
+
+	def run(self):
+		print 'run'
+		capture = cv2.VideoCapture(0)
+		ret, frame = capture.read()
+		cv2.namedWindow('image')
+		cv2.imshow("image",frame)
 
 if __name__ == '__main__':
-	
+	pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
 	rospy.init_node('ShoeStalker', anonymous = True )
 	rospy.spin()
 
