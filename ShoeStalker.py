@@ -9,7 +9,8 @@ October 24, C - Code runs!! HUZZAH. Doesn't do anything yet. Working on keypoint
 
 October 28, J - learned about implementing color histogram and SIFT.
 
-October 28, A - added capability of reading image from Neato stream. added mouse events function.  
+October 28, A - added capability of reading image from Neato stream. added mouse events function. 
+	Added Detect from Paul's code (altered for our use). 
 
 """
 import rospy
@@ -82,15 +83,15 @@ class ShoeStalker:
 	def get_new_keypoints(self):
 		#makes new image black and white
 
-		new_imgbw = cv2.cvtColor(self.new_img,cv2.COLOR_BGR2GRAY)
+		new_img_bw = cv2.cvtColor(self.new_img,cv2.COLOR_BGR2GRAY)
 		#detect keypoints
-		keyp = self.detector.detect(new_imgbw)
+		keyp = self.detector.detect(new_img_bw)
 		#compare keypoints
 		keyp = [point
 			  for point in keyp if (point.response > self.corner_threshold and
 							   self.new_region[0] <= point.point[0] < self.new_region[2] and
 							   self.new_region[1] <= point.point[1] < self.new_region[3])]
-		dc, describe = self.extractor.compute(new_imgbw,keyp)
+		dc, describe = self.extractor.compute(new_img_bw,keyp)
 		#remap keypoints so relative to new region
 		for point in keyp:
 			point.point = (point.point[0] - self.new_region[0],point.point[1] - self.new_region[1])
@@ -98,10 +99,48 @@ class ShoeStalker:
 		self.new_keypoints = keyp
 		self.new_descriptors = describe
 
-	def detect(self, new_keypoints, new_descriptors):
+	def detect(self, new_keypoints, new_descriptors, im):
 		print 'detect'
 
-		keypoints = self.new_keypoints
+		#Pauls Code - went through it and changed it to fit ours. will probably need further alterations
+		img_bw = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
+		training_keypoints = self.detector.detect(img_bw)
+
+		desc, trainig_descriptors = self.estractor.compute(img_bw, training_keypoints)
+		#finds the k best matches for each descriptor from a query set. (http://docs.opencv.org/modules/features2d/doc/common_interfaces_of_descriptor_matchers.html)
+		matches = self.matcher.knnMatch(self.new_descriptors, trainig_descriptors, k=2)
+		good_matches = []
+		for m,n in matches: 
+			#makes sure distance to closest match is sufficiently better than to 2nd closest
+			if (m.distance < self.ration_threshold*n.distance and
+				training_keypoints[m.trainIdx].response >self.corner_threshold):
+				good_matches.append((m.queryIdx, m.drainIdx))
+
+		self.matching_new_pts = np.zeros((len(good_matches),2))
+		self.matching_training_pts = np.zeros((len(good_matches),2))
+
+		track_im = np.zeros(img_bw.shape)
+		for idx in range(len(good_matches)):
+			match = good_matches[idx]
+			self.matching_new_pts[idx,:] = self.query_keypoints[match[0]].pt
+			self.matching_training_pts = training_keypoints[match[1]].pt
+			track_im[training_keypoints[match[1]].pt[1], training_keypoints[match[1]].pt[0]] = 1.0
+
+		track_im_visualize = track_im.copy()
+
+		#converting to (x,y,z,h)
+		track_region = (self.last_detection[0],self.last_detection[1],self.last_detection[2]-self.last_detection[0],self.last_detection[3]-self.last_detection[1])
+
+		#setup criterial for termination, either 10 iteritation or move at least 1 pt
+		#done to plot intermediate results of mean shift
+		for max_iter in range(1,10):
+			term_crit = (cv2.TERM.CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, max_iter, 1)
+			(ret, intermediate_region) = cv2.meanShift(track_im, track_region, term_crit) 
+			cv2.rectangle(track_im_visualize,(imtermediate_region[0],intermediate_region[1],(intermediate_region[0]+intermediate_region[2],intermediate_region[1]+intermediate_region[3]),max_iter/10.0,2)))
+		
+		self.last_detection = [intermediate_region[0],intermediate_region[1],intermediate_region[0]+intermediate_region[2],intermediate_region[1]+intermediate_region[3]]
+
+		cv2.imshow("track_win", track_im_visualize)
 
 		#compare image of the shoe to shoe database (color histogram/SIFT technique) (this may be very time-consuming)
 		#pick shoe by image of shoe with the most keypoints
@@ -138,8 +177,9 @@ class ShoeStalker:
 		print 'run'
 		capture = cv2.VideoCapture(0)
 		ret, frame = capture.read()
-		cv2.namedWindow('image')
+		cv2.namedWindow("image")
 		cv2.imshow("image",frame)
+		cv2.setMouseCallback("image", mouse_event)
 
 	def image(self):
 		print 'image'
@@ -155,7 +195,7 @@ class ShoeStalker:
 		pub.publish('a')
 		rospy.spin()
 
-	def mouse_event(event, x):
+	def mouse_event(event,x,y,flag):
 		if event == cv2.EVENT_FLAG_LBUTTON:
 			if tracker.state == tracker.SELECTING_NEW_IMG:
 				tracker.new_img_visualize = frame.copy()
