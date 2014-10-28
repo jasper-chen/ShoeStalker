@@ -24,7 +24,7 @@ class ShoeStalker:
 		self.detector = cv2.FeatureDetector_create(descriptor)
 		self.extractor = cv2.DescriptorExtractor_create(descriptor)
 		self.matcher = cv2.BFMatcher()
-		self.new_img = cv2.imread('../')
+		self.new_img = cv2.imread('./shoefront/frame0000.jpg')
 		self.new_region = None
 		self.last_detection = None
 
@@ -33,8 +33,8 @@ class ShoeStalker:
 
 		self.state = ShoeStalker.SELECTING_NEW_IMG
 		# will need to change the object part of this depending on what our object is...
-		self.camera_listener = rospy.Subscriber("camera/image_raw", Image, self.pauls_track_object)
-		self.bridge = CvBridge()
+		#self.camera_listener = rospy.Subscriber("camera/image_raw", Image, self.pauls_track_object)
+		#self.bridge = CvBridge()
 
 	def capture(self):
 		# for using the image from the Neato 
@@ -57,6 +57,13 @@ class ShoeStalker:
 
 	def get_new_keypoints(self):
 		#makes new image black and white
+		#print 'hello'
+		print 'la'
+		cv2.namedWindow('image')
+		cv2.imshow('image',self.new_img)
+		#cv2.waitKey(0)
+		#cv2.destroyAllWindows()
+
 		new_imgbw = cv2.cvtColor(self.new_img,cv2.COLOR_BGR2GREY)
 		#detect keypoints
 		keyp = self.detector.detect(new_imgbw)
@@ -89,19 +96,20 @@ class ShoeStalker:
 		print 'lost shoe'
 		#refind a lost shoe, turn towards location of last view
 
-	def run(self):
-		capture = cv2.VideoCapture(0)
-		ret, frame = capture.read()
-		cv2.namedWindow('image')
-		cv2.imshow("image",frame)
+	#def run(self):
+		#capture = cv2.VideoCapture(0)
+		#ret, frame = capture.read()
+		#cv2.namedWindow('image')
+		#cv2.imshow("image",frame)
 
 if __name__ == '__main__':
 	
-rospy.init_node('ShoeStalker', anonymous = True )
-rospy.spin()
+	rospy.init_node('ShoeStalker', anonymous = True )
+	rospy.spin()
 
 	try:
 		n = ShoeStalker('SIFT')
+		n.get_new_keypoints()
 		n.run()
 		#load image
 		#show image
