@@ -9,6 +9,8 @@ October 24, C - Code runs!! HUZZAH. Doesn't do anything yet. Working on keypoint
 
 October 28, J - learned about implementing color histogram and SIFT.
 
+October 28, A - implementing subscribers for image from Neato 
+
 """
 import rospy
 import cv2
@@ -33,13 +35,19 @@ class ShoeStalker:
 		self.ratio_threshold = 1.0
 
 		self.state = ShoeStalker.SELECTING_NEW_IMG
+<<<<<<< HEAD
 		# will need to change the object part of this depending on what our object is...
-		self.camera_listener = rospy.Subscriber("camera/image_raw", Image)#, self.pauls_track_object)
+		self.camera_listener = rospy.Subscriber("camera/image_raw", Image, self.pauls_track_object)
+=======
+		self.camera_listener = rospy.Subscriber("camera/image_raw", Image)
+>>>>>>> d5f71ad882093166f32ec548c8a2d4c60110fa11
 		self.bridge = CvBridge()
 
-	def capture(self):
+	def capture(self,msg):
 		# for using the image from the Neato 
-		cv_Shoeimage = self.bridge.imgmsg_to_cv2()
+		#useful link for image types http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
+		cv_Shoeimage = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+		Shoeimage = np.array(cv_Shoeimage)
 
 		# #To use with the webcam - for testing 
 		# #take picture of shoe 
