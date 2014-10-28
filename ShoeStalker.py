@@ -25,6 +25,7 @@ class ShoeStalker:
 	SELECTING_NEW_IMG = 0
 
 	def __init__(self,descriptor):
+
 		self.detector = cv2.FeatureDetector_create(descriptor)
 		self.extractor = cv2.DescriptorExtractor_create(descriptor)
 		self.matcher = cv2.BFMatcher()
@@ -38,8 +39,12 @@ class ShoeStalker:
 		self.state = ShoeStalker.SELECTING_NEW_IMG
 
 		# will need to change the object part of this depending on what our object is...
-		self.camera_listener = rospy.Subscriber("camera/image_raw", Image, self.pauls_track_object)
-		self.bridge = CvBridge()
+		try:
+			self.camera_listener = rospy.Subscriber("camera/image_raw", Image, self.pauls_track_object)
+			self.bridge = CvBridge()
+		except AttributeError:
+			pass
+
 
 	def capture(self,msg):
 		# for using the image from the Neato 
@@ -64,12 +69,6 @@ class ShoeStalker:
 
 	def get_new_keypoints(self):
 		#makes new image black and white
-		#print 'hello'
-		print 'la'
-		cv2.namedWindow('image')
-		cv2.imshow('image',self.new_img)
-		#cv2.waitKey(0)
-		#cv2.destroyAllWindows()
 
 		new_imgbw = cv2.cvtColor(self.new_img,cv2.COLOR_BGR2GREY)
 		#detect keypoints
@@ -119,17 +118,27 @@ class ShoeStalker:
 		cv2.namedWindow('image')
 		cv2.imshow("image",frame)
 
-if __name__ == '__main__':
-	pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
-	rospy.init_node('ShoeStalker', anonymous = True )
-	rospy.spin()
+	def image(self):
+		print 'image'
+		frame = self.new_img
+		cv2.namedWindow('image')
+		cv2.imshow("image",frame)
+		cv2.waitKey(0)
+		cv2.destroyAllWindows()
 
+	def publisher(self):
+		pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
+		rospy.init_node('ShoeStalker', anonymous = True )
+		pub.publish('a')
+		rospy.spin()
+
+if __name__ == '__main__':
 	try:
 		n = ShoeStalker('SIFT')
-		n.get_new_keypoints()
-		n.run()
+		n.image()
+		n.publisher()
+		
 		#load image
 		#show image
 		#plot keypoints
 	except rospy.ROSInterruptException: pass
-
