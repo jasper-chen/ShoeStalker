@@ -9,6 +9,8 @@ October 24, C - Code runs!! HUZZAH. Doesn't do anything yet. Working on keypoint
 
 October 28, J - learned about implementing color histogram and SIFT.
 
+October 28, A - implementing subscribers for image from Neato 
+
 """
 import rospy
 import cv2
@@ -36,9 +38,11 @@ class ShoeStalker:
 		#self.camera_listener = rospy.Subscriber("camera/image_raw", Image, self.pauls_track_object)
 		#self.bridge = CvBridge()
 
-	def capture(self):
+	def capture(self,msg):
 		# for using the image from the Neato 
-		cv_Shoeimage = self.bridge.imgmsg_to_cv2()
+		#useful link for image types http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
+		cv_Shoeimage = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+		Shoeimage = np.array(cv_Shoeimage)
 
 		# #To use with the webcam - for testing 
 		# #take picture of shoe 
@@ -83,7 +87,7 @@ class ShoeStalker:
 	def detect(self):
 		print 'detect'
 
-		#compare query of shoe to shoe references (color histogram/SIFT technique) (this may be very time-consuming)
+		#compare image of the shoe to shoe database (color histogram/SIFT technique) (this may be very time-consuming)
 		#pick shoe by image of shoe with the most keypoints
 		#return location of shoes (I think it might be easier to use one location of a shoe)
 
@@ -115,3 +119,4 @@ if __name__ == '__main__':
 		#show image
 		#plot keypoints
 	except rospy.ROSInterruptException: pass
+
