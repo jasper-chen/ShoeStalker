@@ -35,8 +35,8 @@ class ShoeStalker:
 
 		self.state = ShoeStalker.SELECTING_NEW_IMG
 		# will need to change the object part of this depending on what our object is...
-		#self.camera_listener = rospy.Subscriber("camera/image_raw", Image, self.pauls_track_object)
-		#self.bridge = CvBridge()
+		self.camera_listener = rospy.Subscriber("camera/image_raw", Image, self.pauls_track_object)
+		self.bridge = CvBridge()
 
 	def capture(self,msg):
 		# for using the image from the Neato 
