@@ -15,6 +15,7 @@ import cv2
 import numpy as np
 
 from matplotlib import pyplot as plt
+from sensor_msgs.msg import Image
 
 class ShoeStalker:
 	SELECTING_NEW_IMG = 0
@@ -31,22 +32,28 @@ class ShoeStalker:
 		self.ratio_threshold = 1.0
 
 		self.state = ShoeStalker.SELECTING_NEW_IMG
+		# will need to change the object part of this depending on what our object is...
+		self.camera_listener = rospy.Subscriber("camera/image_raw", Image, self.pauls_track_object)
+		self.bridge = CvBridge()
 
 	def capture(self):
-		#take picture of shoe 
-		capture = cv.CaptureFromCAM(0)
-		img = cv.QueryFrame(capture)
-		plt.imshow(img, cmap = 'gray', interpolation = 'bicubic') # shows image
-		#save image to specific location
-		cv.SaveImage("captured_shoe",img)
-		#read back image (necessary?)
-		img = cv2.imread('captured_shoe')
-		if cv2.waitKey(1) & 0xFF == ord('q'):
-			print 'break'
-			#break
-		# When everything done, release the capture
-		cap.release()
-		#cv2.destroyAllWindows() #perhaps we don't want this? Don't want this till the end
+		# for using the image from the Neato 
+		cv_Shoeimage = self.bridge.imgmsg_to_cv2()
+
+		# #To use with the webcam - for testing 
+		# #take picture of shoe 
+		# capture = cv.CaptureFromCAM(0)
+		# img = cv.QueryFrame(capture)
+		# plt.imshow(img, cmap = 'gray', interpolation = 'bicubic') # shows image
+		# #save image to specific location
+		# cv.SaveImage("captured_shoe",img)
+		# #read back image (necessary?)
+		# img = cv2.imread('captured_shoe')
+		# if cv2.waitKey(1) & 0xFF == ord('q'):
+		# 	print 'break'
+		# 	#break
+		# # When everything done, release the capture
+		# cap.release()
 
 	def get_new_keypoints(self):
 		#makes new image black and white
@@ -89,6 +96,10 @@ class ShoeStalker:
 		cv2.imshow("image",frame)
 
 if __name__ == '__main__':
+	
+rospy.init_node('ShoeStalker', anonymous = True )
+rospy.spin()
+
 	try:
 		n = ShoeStalker('SIFT')
 		n.run()
