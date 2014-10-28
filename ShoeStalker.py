@@ -73,10 +73,14 @@ class ShoeStalker:
 		#pick shoe by image of shoe with the most keypoints
 		#return location of shoes (I think it might be easier to use one location of a shoe)
 
-	def stalk(self):
+	def stalk(self,xpos): #potentially add distance to shoe if that happens
 		print 'stalk'
 		#move robot so shoe is in center of image (or will it already be like this?)
 		#move towards the shoes
+
+		#linear = .5
+		#angular = xpos * something depending on what the units of xpos are
+		#pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
 
 	def lostshoe(self):
 		print 'lost shoe'
