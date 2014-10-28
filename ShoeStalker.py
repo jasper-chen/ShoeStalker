@@ -150,6 +150,7 @@ if __name__ == '__main__':
 		n = ShoeStalker('SIFT')
 		n.image()
 		n.publisher()
+		#test
 		
 		#load image
 		#show image
