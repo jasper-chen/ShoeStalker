@@ -20,6 +20,7 @@ import numpy as np
 from geometry_msgs.msg import Twist, Vector3
 from matplotlib import pyplot as plt
 from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
 
 class ShoeStalker:
 	SELECTING_NEW_IMG = 0
@@ -134,9 +135,9 @@ class ShoeStalker:
 		#setup criterial for termination, either 10 iteritation or move at least 1 pt
 		#done to plot intermediate results of mean shift
 		for max_iter in range(1,10):
-			term_crit = (cv2.TERM.CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, max_iter, 1)
-			(ret, intermediate_region) = cv2.meanShift(track_im, track_region, term_crit) 
-			cv2.rectangle(track_im_visualize,(imtermediate_region[0],intermediate_region[1],(intermediate_region[0]+intermediate_region[2],intermediate_region[1]+intermediate_region[3]),max_iter/10.0,2)))
+			term_crit = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, max_iter, 1 )
+			(ret, intermediate_region) = cv2.meanShift(track_im,track_region,term_crit)
+			cv2.rectangle(track_im_visualize,(intermediate_region[0],intermediate_region[1]),(intermediate_region[0]+intermediate_region[2],intermediate_region[1]+intermediate_region[3]),max_iter/10.0,2)
 		
 		self.last_detection = [intermediate_region[0],intermediate_region[1],intermediate_region[0]+intermediate_region[2],intermediate_region[1]+intermediate_region[3]]
 
@@ -205,7 +206,7 @@ class ShoeStalker:
 			elif tracker.state == tracker.SELECTING_REGION_PT_1:
 				tracker.new_region = [x,y,-1,-1]
 				cv2.circle(tracker.new_img_visualize,(x,y),5,(255,0,0),5)
-				tracker.state = tracker.SELECTING_ROI_PT_2
+				tracker.state = tracker.SELECTING_REGION_PT_2
 			else:
 				tracker.new_region[2:] = [x,y]
 				tracker.last_detection = tracker.new_region
