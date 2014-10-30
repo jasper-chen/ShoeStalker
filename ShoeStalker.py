@@ -61,6 +61,7 @@ class ShoeStalker:
 		#useful link for image types http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
 		cv_Shoeimage = self.bridge.imgmsg_to_cv2(msg, "bgr8")
 		Shoeimage = np.array(cv_Shoeimage)
+		self.new_img = Shoeimage
 
 		# set up the ROI for tracking
 		region = self.new_img[self.new_region[1]:self.new_region[3],self.new_region[0]:self.new_region[2],:]
@@ -100,7 +101,7 @@ class ShoeStalker:
 		self.new_keypoints = keyp
 		self.new_descriptors = describe
 
-	def detect(self, new_keypoints, new_descriptors, im):
+	def detect(self, im):
 		print 'detect'
 
 		#Pauls Code - went through it and changed it to fit ours. will probably need further alterations
@@ -109,7 +110,7 @@ class ShoeStalker:
 
 		desc, trainig_descriptors = self.estractor.compute(img_bw, training_keypoints)
 		#finds the k best matches for each descriptor from a query set. (http://docs.opencv.org/modules/features2d/doc/common_interfaces_of_descriptor_matchers.html)
-		matches = self.matcher.knnMatch(self.new_descriptors, trainig_descriptors, k=2)
+		matches = self.matcher.knnMatch(self.new_descriptors, training_descriptors, k=2)
 		good_matches = []
 		for m,n in matches: 
 			#makes sure distance to closest match is sufficiently better than to 2nd closest
@@ -123,7 +124,7 @@ class ShoeStalker:
 		track_im = np.zeros(img_bw.shape)
 		for idx in range(len(good_matches)):
 			match = good_matches[idx]
-			self.matching_new_pts[idx,:] = self.query_keypoints[match[0]].pt
+			self.matching_new_pts[idx,:] = self.new_keypoints[match[0]].pt
 			self.matching_training_pts = training_keypoints[match[1]].pt
 			track_im[training_keypoints[match[1]].pt[1], training_keypoints[match[1]].pt[0]] = 1.0
 
@@ -156,7 +157,7 @@ class ShoeStalker:
 		#move robot so shoe is in center of image (or will it already be like this?)
 		#move towards the shoes
 
-		#xpos,distance = self.detect()
+		#xpos,distance = self.detect(self.new_image)
 
 		#if xpos > 0:
 			#linear = .5
@@ -185,8 +186,8 @@ class ShoeStalker:
 	def image(self):
 		print 'image'
 		frame = self.new_img
-		cv2.namedWindow('image')
-		cv2.imshow("image",frame)
+		cv2.namedWindow('ref_image')
+		cv2.imshow("ref_image",frame)
 		cv2.waitKey(0)
 		cv2.destroyAllWindows()
 
