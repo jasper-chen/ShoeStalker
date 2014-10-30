@@ -24,6 +24,8 @@ from cv_bridge import CvBridge
 
 class ShoeStalker:
 	SELECTING_NEW_IMG = 0
+	SELECTING_REGION_POINT_1 = 1
+	SELECTING_REGION_POINT_2 = 2
 
 	def __init__(self,descriptor):
 
@@ -168,21 +170,12 @@ class ShoeStalker:
 			#self.lostshoe()
 
 	def lostshoe(self):
+		"""refinds a lost shoe, turn towards location of last shoe. currently just turning"""
 		print 'lost shoe'
-		#refind a lost shoe, turn towards location of last view
-		#currently just turning
 
 		#linear = 0
 		#angular = .8
 		#pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
-
-	def run(self):
-		print 'run'
-		capture = cv2.VideoCapture(0)
-		ret, frame = capture.read()
-		cv2.namedWindow("image")
-		cv2.imshow("image",frame)
-		cv2.setMouseCallback("image", mouse_event)
 
 	def preloaded_reference_image(self):
 		"""displays and assigns a preloaded reference image to save time testing code"""
@@ -194,8 +187,9 @@ class ShoeStalker:
 		cv2.destroyAllWindows()
 
 	def publisher(self):
-		pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
 		rospy.init_node('ShoeStalker', anonymous = True )
+		pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
+		
 		pub.publish('a')
 		rospy.spin()
 
@@ -220,7 +214,21 @@ class ShoeStalker:
 if __name__ == '__main__':
 	try:
 		n = ShoeStalker('SIFT')
-		n.image()
-		n.get_new_keypoints()
-		n.publisher()
+		rospy.init_node('ShoeStalker', anonymous = True)
+		pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
+
+		capture = cv2.VideoCapture(0)
+		ret, frame = capture.read()
+		cv2.namedWindow("image")
+		cv2.imshow("image",frame)
+		cv2.setMouseCallback("image", mouse_event) #listen for mouse clicks on window
+
+		while not rospy.is_shutdown():
+			#ret, frame = cap.read()
+			#frame = np.array(cv2.resize(frame,(frame.shape[1]/2,frame.shape[0]/2)))
+			#function(pub)
+			#capture frames
+
+			pass
+
 	except rospy.ROSInterruptException: pass
