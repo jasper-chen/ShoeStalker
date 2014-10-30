@@ -30,7 +30,8 @@ class ShoeStalker:
 		self.detector = cv2.FeatureDetector_create(descriptor)
 		self.extractor = cv2.DescriptorExtractor_create(descriptor)
 		self.matcher = cv2.BFMatcher()
-		self.new_img = cv2.imread('./shoefront/frame0000.jpg')
+		self.new_img = None
+		#cv2.imread('./shoefront/frame0000.jpg')
 		self.new_region = None
 		self.last_detection = None
 
@@ -40,10 +41,10 @@ class ShoeStalker:
 		self.state = ShoeStalker.SELECTING_NEW_IMG
 
 		try:
-
 			#for image capture 
 			self.camera_listener = rospy.Subscriber("camera/image_raw", Image)
 			self.bridge = CvBridge()
+			#make image something useful
 		except AttributeError:
 			pass	
 
@@ -182,11 +183,12 @@ class ShoeStalker:
 		cv2.imshow("image",frame)
 		cv2.setMouseCallback("image", mouse_event)
 
-	def image(self):
-		print 'image'
+	def preloaded_reference_image(self):
+		"""displays and assigns a preloaded reference image to save time testing code"""
+		print 'preloaded reference'
 		frame = self.new_img
-		cv2.namedWindow('image')
-		cv2.imshow("image",frame)
+		cv2.namedWindow('preloaded reference')
+		cv2.imshow("preloaded reference",frame)
 		cv2.waitKey(0)
 		cv2.destroyAllWindows()
 
@@ -219,7 +221,5 @@ if __name__ == '__main__':
 		n = ShoeStalker('SIFT')
 		n.image()
 		n.get_new_keypoints()
-
-
 		n.publisher()
 	except rospy.ROSInterruptException: pass
