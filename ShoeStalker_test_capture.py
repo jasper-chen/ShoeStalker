@@ -60,15 +60,17 @@ class ShoeStalker:
 		print "initiated!"
 
 	def capture(self,msg):
-		#IMAGE FROM NEATO 1
-		im_bw = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
+		# #IMAGE FROM NEATO 1
+		# im_bw = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
 
 
-		# # IMAGE FROM NEATO 2
-		# #useful link for image types http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
-		# cv_Shoeimage = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-		# Shoeimage = np.array(cv_Shoeimage)
+		# IMAGE FROM NEATO 2
+		#useful link for image types http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
+		cv_Shoeimage = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+		Shoeimage = np.asanyarray(cv_Shoeimage)
 		# self.new_img = Shoeimage
+		cv2.imshow("Shoeimage", frame)
+		print "image"
 
 		# # set up the ROI for tracking
 		# region = self.new_img[self.new_region[1]:self.new_region[3],self.new_region[0]:self.new_region[2],:]
@@ -225,8 +227,9 @@ class ShoeStalker:
 
 if __name__ == '__main__':
 	try:
+		rospy.init_node('capture', anonymous=True)
 		n = ShoeStalker('SIFT')
-		n.image()
+		# n.capture()
 		n.get_new_keypoints()
 		n.publisher()
 	except rospy.ROSInterruptException: pass
