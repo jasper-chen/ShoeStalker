@@ -28,7 +28,6 @@ class ShoeStalker:
 	SELECTING_REGION_POINT_2 = 2
 
 	def __init__(self,descriptor):
-
 		self.detector = cv2.FeatureDetector_create(descriptor)
 		self.extractor = cv2.DescriptorExtractor_create(descriptor)
 		self.matcher = cv2.BFMatcher()
@@ -193,23 +192,24 @@ class ShoeStalker:
 		pub.publish('a')
 		rospy.spin()
 
-	def mouse_event(event,x,y,flag):
-		if event == cv2.EVENT_FLAG_LBUTTON:
-			if tracker.state == tracker.SELECTING_NEW_IMG:
-				tracker.new_img_visualize = frame.copy()
-				tracker.new_img = frame
-				tracker.new_region = None
-				tracker.state = tracker.SELECTING_REGION_PT_1
-			elif tracker.state == tracker.SELECTING_REGION_PT_1:
-				tracker.new_region = [x,y,-1,-1]
-				cv2.circle(tracker.new_img_visualize,(x,y),5,(255,0,0),5)
-				tracker.state = tracker.SELECTING_REGION_PT_2
-			else:
-				tracker.new_region[2:] = [x,y]
-				tracker.last_detection = tracker.new_region
-				cv2.circle(tracker.new_img_visualize,(x,y),5,(255,0,0),5)
-				tracker.state = tracker.SELECTING_NEW_IMG
-				tracker.get_new_keypoints()		
+def mouse_event(event,x,y,flag):
+	"""select an image from a video stream"""
+	if event == cv2.EVENT_FLAG_LBUTTON:
+		if tracker.state == tracker.SELECTING_NEW_IMG:
+			tracker.new_img_visualize = frame.copy()
+			tracker.new_img = frame
+			tracker.new_region = None
+			tracker.state = tracker.SELECTING_REGION_PT_1
+		elif tracker.state == tracker.SELECTING_REGION_PT_1:
+			tracker.new_region = [x,y,-1,-1]
+			cv2.circle(tracker.new_img_visualize,(x,y),5,(255,0,0),5)
+			tracker.state = tracker.SELECTING_REGION_PT_2
+		else:
+			tracker.new_region[2:] = [x,y]
+			tracker.last_detection = tracker.new_region
+			cv2.circle(tracker.new_img_visualize,(x,y),5,(255,0,0),5)
+			tracker.state = tracker.SELECTING_NEW_IMG
+			tracker.get_new_keypoints()		
 
 if __name__ == '__main__':
 	try:
@@ -226,6 +226,7 @@ if __name__ == '__main__':
 		while not rospy.is_shutdown():
 			#ret, frame = cap.read()
 			#frame = np.array(cv2.resize(frame,(frame.shape[1]/2,frame.shape[0]/2)))
+
 			#function(pub)
 			#capture frames
 
