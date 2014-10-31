@@ -3,6 +3,7 @@
 import numpy as np
 import cv2
 import rospy
+import std_msgs
 
 from sensor_msgs.msg import Image
 from std_msgs.msg import String

@@ -46,6 +46,7 @@ class ShoeStalker:
 			self.bridge = CvBridge()
 			#make image something useful
 		except AttributeError:
+			print "ERROR!"
 			pass	
 
 		# try:
@@ -67,9 +68,9 @@ class ShoeStalker:
 		# IMAGE FROM NEATO 2
 		#useful link for image types http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
 		cv_Shoeimage = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-		Shoeimage = np.asanyarray(cv_Shoeimage)
-		# self.new_img = Shoeimage
-		cv2.imshow("Shoeimage", frame)
+		#Shoeimage = np.asanyarray(cv_Shoeimage)
+		self.new_img = cv_Shoeimage
+		cv2.imshow("Shoeimage", cv_Shoeimage)
 		print "image"
 
 		# # set up the ROI for tracking
@@ -93,7 +94,9 @@ class ShoeStalker:
 
 	def get_new_keypoints(self):
 		#makes new image black and white
-
+		if self.new_img == None:
+			return
+		print self.new_img
 		new_img_bw = cv2.cvtColor(self.new_img,cv2.COLOR_BGR2GRAY)
 		#detect keypoints
 		keyp = self.detector.detect(new_img_bw)
@@ -201,11 +204,11 @@ class ShoeStalker:
 		cv2.waitKey(0)
 		cv2.destroyAllWindows()
 
-	def publisher(self):
-		pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
-		rospy.init_node('ShoeStalker', anonymous = True )
-		pub.publish('a')
-		rospy.spin()
+	# def publisher(self):
+	# 	pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
+	# 	rospy.init_node('ShoeStalker', anonymous = True )
+	# 	pub.publish('a')
+	# 	rospy.spin()
 
 	def mouse_event(event,x,y,flag):
 		if event == cv2.EVENT_FLAG_LBUTTON:
@@ -229,7 +232,8 @@ if __name__ == '__main__':
 	try:
 		rospy.init_node('capture', anonymous=True)
 		n = ShoeStalker('SIFT')
-		# n.capture()
-		n.get_new_keypoints()
-		n.publisher()
+		while not(rospy.is_shutdown()):
+			cv2.waitKey(50)
+			n.get_new_keypoints()
+	#	n.publisher()
 	except rospy.ROSInterruptException: pass
