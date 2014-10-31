@@ -20,7 +20,7 @@ import numpy as np
 from geometry_msgs.msg import Twist, Vector3
 from matplotlib import pyplot as plt
 from sensor_msgs.msg import Image
-#from cv_bridge import CvBridge, CvBridgeError
+from cv_bridge import CvBridge, CvBridgeError
 
 class ShoeStalker:
 	SELECTING_NEW_IMG = 0
@@ -42,8 +42,8 @@ class ShoeStalker:
 
 		try:
 			#for image capture 
-			self.camera_listener = rospy.Subscriber("camera/image_raw", Image)
-			#self.bridge = CvBridge()
+			self.camera_listener = rospy.Subscriber("camera/image_raw",Image, self.capture)
+			self.bridge = CvBridge()
 			#make image something useful
 		except AttributeError:
 			pass	
@@ -56,6 +56,8 @@ class ShoeStalker:
 		self.new_img = None
 		self.new_region = None
 		self.last_detection = None
+
+		print "initiated!"
 
 	def capture(self,msg):
 		#IMAGE FROM NEATO 1
