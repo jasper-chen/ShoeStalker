@@ -91,7 +91,7 @@ class ShoeStalker:
 
 	def get_new_keypoints(self):
 		#makes new image black and white
-		if self.newimage == None:
+		if self.new_img == None:
 			return
 		print self.new_img
 		new_img_bw = cv2.cvtColor(self.new_img,cv2.COLOR_BGR2GRAY)
@@ -242,7 +242,7 @@ if __name__ == '__main__':
 
 		while not(rospy.is_shutdown()):
 			cv2.waitKey(50)
-			n.get_new_keypoints()
+			# n.get_new_keypoints() # had to comment out to get have code run for image capture 11/1
 			#ret, frame = cap.read()
 			#frame = np.array(cv2.resize(frame,(frame.shape[1]/2,frame.shape[0]/2)))
 
