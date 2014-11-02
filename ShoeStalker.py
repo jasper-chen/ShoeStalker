@@ -67,7 +67,7 @@ class ShoeStalker:
 		cv_Shoeimage = self.bridge.imgmsg_to_cv2(msg, "bgr8")
 		#Shoeimage = np.asanyarray(cv_Shoeimage)
 		self.new_img = cv_Shoeimage
-		cv2.imshow("Shoeimage", cv_Shoeimage)
+		cv2.imshow("ShoeImage", cv_Shoeimage)
 		print "image"
 
 		# # set up the ROI for tracking
@@ -88,6 +88,12 @@ class ShoeStalker:
 		# 	#break
 		# # When everything done, release the capture
 		# cap.release()
+
+	def set_ratio_threshold(self,thresh):
+		self.ratio_threshold = thresh
+
+	def set_corner_threshold(self,thresh):
+		self.corner_threshold = thresh
 
 	def get_new_keypoints(self):
 		#makes new image black and white
@@ -184,13 +190,13 @@ class ShoeStalker:
 		#pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
 
 
-	def run(self): #perhaps should move to if __name__ == '__main__', but this is how it is in the fixed image code
-		print 'run'
-		capture = cv2.VideoCapture(0)
-		ret, frame = capture.read()
-		cv2.namedWindow("image")
-		cv2.imshow("image",frame)
-		cv2.setMouseCallback("image", mouse_event)
+	# def run(self): #perhaps should move to if __name__ == '__main__', but this is how it is in the fixed image code
+	# 	print 'run'
+	# 	capture = cv2.VideoCapture(0)
+	# 	ret, frame = capture.read()
+	# 	cv2.namedWindow("ShoeImage")
+	#	cv2.imshow("ShoeImage",frame)
+	# 	cv2.setMouseCallback("ShoeImage", mouse_event)
 
 	def preloaded_reference_image(self):
 		"""displays and assigns a preloaded reference image to save time testing code"""
@@ -202,12 +208,12 @@ class ShoeStalker:
 		cv2.destroyAllWindows()
 
 
-	def publisher(self):
-		rospy.init_node('ShoeStalker', anonymous = True )
-		pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
+	# def publisher(self):
+	# 	rospy.init_node('ShoeStalker', anonymous = True )
+	# 	pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
 		
-		pub.publish('a')
-		rospy.spin()
+	# 	pub.publish('a')
+	# 	rospy.spin()
 
 	def mouse_event(event,x,y,flag):
 		if event == cv2.EVENT_FLAG_LBUTTON:
@@ -225,22 +231,35 @@ class ShoeStalker:
 				self.last_detection = self.new_region
 				cv2.circle(self.new_img_visualize,(x,y),5,(255,0,0),5)
 				self.state = self.SELECTING_NEW_IMG
-				self.get_new_keypoints()		
+				self.get_new_keypoints()
+
+	def set_corner_threshold_callback(thresh):
+		""" Sets the threshold to consider an interest point a corner.  The higher the value
+			the more the point must look like a corner to be considered """
+		self.set_corner_threshold(thresh/1000.0)
+
+	def set_ratio_threshold_callback(ratio):
+		""" Sets the ratio of the nearest to the second nearest neighbor to consider the match a good one """
+		self.set_ratio_threshold(ratio/100.0)		
 
 if __name__ == '__main__':
 	try:
 		rospy.init_node('caputure', anonymous=True)
 		n = ShoeStalker('SIFT')
 		# rospy.init_node('ShoeStalker', anonymous = True) # don't need?
-		pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
-		pub.publish('a')
+		#pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
+		#pub.publish('a')
 		rospy.spin()
 
-		# capture = cv2.VideoCapture(0)
-		# ret, frame = capture.read()
-		# cv2.namedWindow("image")
-		# cv2.imshow("image",frame)
-		# cv2.setMouseCallback("image", mouse_event) #listen for mouse clicks on window
+		#capture = cv2.VideoCapture(0)
+		#ret, frame = capture.read()
+		cv2.namedWindow('UI')
+		cv2.createTrackbar('Corner Threshold', 'UI', 0, 100, n.set_corner_threshold_callback)
+		cv2.createTrackbar('Ratio Threshold', 'UI', 100, 100, n.set_ratio_threshold_callback)
+		
+		cv2.namedWindow("ShoeImage")
+		#cv2.imshow("image",frame)
+		cv2.setMouseCallback("ShoeImage", n.mouse_event) #listen for mouse clicks on window
 
 		while not(rospy.is_shutdown()):
 			cv2.waitKey(50)
@@ -250,7 +269,5 @@ if __name__ == '__main__':
 
 			#function(pub)
 			#capture frames
-
-			pass
 
 	except rospy.ROSInterruptException: pass
