@@ -20,7 +20,7 @@ import numpy as np
 from geometry_msgs.msg import Twist, Vector3
 from matplotlib import pyplot as plt
 from sensor_msgs.msg import Image
-#from cv_bridge import CvBridge, CvBridgeError
+from cv_bridge import CvBridge, CvBridgeError
 
 class ShoeStalker:
 	SELECTING_NEW_IMG = 0
@@ -42,10 +42,11 @@ class ShoeStalker:
 
 		try:
 			#for image capture 
-			self.camera_listener = rospy.Subscriber("camera/image_raw", Image)
-			#self.bridge = CvBridge()
+			self.camera_listener = rospy.Subscriber("camera/image_raw",Image, self.capture)
+			self.bridge = CvBridge()
 			#make image something useful
 		except AttributeError:
+			print "ERROR!"
 			pass	
 
 		# try:
@@ -57,16 +58,16 @@ class ShoeStalker:
 		self.new_region = None
 		self.last_detection = None
 
+		print "initiated!"
+
 	def capture(self,msg):
-		#IMAGE FROM NEATO 1
-		im_bw = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
-
-
-		# # IMAGE FROM NEATO 2
-		# #useful link for image types http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
-		# cv_Shoeimage = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-		# Shoeimage = np.array(cv_Shoeimage)
-		# self.new_img = Shoeimage
+		# IMAGE FROM NEATO 
+		#useful link for image types http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
+		cv_Shoeimage = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+		#Shoeimage = np.asanyarray(cv_Shoeimage)
+		self.new_img = cv_Shoeimage
+		cv2.imshow("ShoeStream", cv_Shoeimage)
+		print "image"
 
 		# # set up the ROI for tracking
 		# region = self.new_img[self.new_region[1]:self.new_region[3],self.new_region[0]:self.new_region[2],:]
@@ -87,9 +88,17 @@ class ShoeStalker:
 		# # When everything done, release the capture
 		# cap.release()
 
+	def set_ratio_threshold(self,thresh):
+		self.ratio_threshold = thresh
+
+	def set_corner_threshold(self,thresh):
+		self.corner_threshold = thresh
+
 	def get_new_keypoints(self):
 		#makes new image black and white
-
+		if self.new_img == None:
+			return
+		print self.new_img
 		new_img_bw = cv2.cvtColor(self.new_img,cv2.COLOR_BGR2GRAY)
 		#detect keypoints
 		keyp = self.detector.detect(new_img_bw)
@@ -180,14 +189,13 @@ class ShoeStalker:
 		#angular = .8
 		#pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
 
-	def run(self):
-		print 'run'
-		capture = cv2.VideoCapture(0)
-		ret, frame = capture.read()
-		cv2.namedWindow("image")
-		cv2.imshow("image",frame)
-		cv2.setMouseCallback("image", mouse_event)
-
+	# def run(self):  #doesn't seem to be necessary...
+	# 	print 'run'
+		# capture = cv2.VideoCapture(0)
+		# ret, frame = capture.read()
+		# cv2.namedWindow("image")
+		# cv2.imshow("image",frame)
+		
 	def preloaded_reference_image(self):
 		"""displays and assigns a preloaded reference image to save time testing code"""
 		print 'preloaded reference'
@@ -197,34 +205,56 @@ class ShoeStalker:
 		cv2.waitKey(0)
 		cv2.destroyAllWindows()
 
-	def publisher(self):
-		pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
-		rospy.init_node('ShoeStalker', anonymous = True )
-		pub.publish('a')
-		rospy.spin()
+	# def publisher(self):
+	# 	pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
+	# 	rospy.init_node('ShoeStalker', anonymous = True )
+	# 	pub.publish('a')
+	# 	rospy.spin()
+
+	def set_corner_threshold_callback(thresh):
+		""" Sets the threshold to consider an interest point a corner.  The higher the value
+			the more the point must look like a corner to be considered """
+		self.set_corner_threshold(thresh/1000.0)
+
+	def set_ratio_threshold_callback(ratio):
+		""" Sets the ratio of the nearest to the second nearest neighbor to consider the match a good one """
+		self.set_ratio_threshold(ratio/100.0)
+
 
 	def mouse_event(event,x,y,flag):
 		if event == cv2.EVENT_FLAG_LBUTTON:
-			if tracker.state == tracker.SELECTING_NEW_IMG:
-				tracker.new_img_visualize = frame.copy()
-				tracker.new_img = frame
-				tracker.new_region = None
-				tracker.state = tracker.SELECTING_REGION_PT_1
-			elif tracker.state == tracker.SELECTING_REGION_PT_1:
-				tracker.new_region = [x,y,-1,-1]
-				cv2.circle(tracker.new_img_visualize,(x,y),5,(255,0,0),5)
-				tracker.state = tracker.SELECTING_REGION_PT_2
+			if self.state == self.SELECTING_NEW_IMG:
+				self.new_img_visualize = frame.copy()
+				self.new_img = frame
+				self.new_region = None
+				self.state = self.SELECTING_REGION_PT_1
+			elif self.state == self.SELECTING_REGION_PT_1:
+				self.new_region = [x,y,-1,-1]
+				cv2.circle(self.new_img_visualize,(x,y),5,(255,0,0),5)
+				self.state = self.SELECTING_REGION_PT_2
 			else:
-				tracker.new_region[2:] = [x,y]
-				tracker.last_detection = tracker.new_region
-				cv2.circle(tracker.new_img_visualize,(x,y),5,(255,0,0),5)
-				tracker.state = tracker.SELECTING_NEW_IMG
-				tracker.get_new_keypoints()		
+				self.new_region[2:] = [x,y]
+				self.last_detection = self.new_region
+				cv2.circle(self.new_img_visualize,(x,y),5,(255,0,0),5)
+				self.state = self.SELECTING_NEW_IMG
+				self.get_new_keypoints()		
 
 if __name__ == '__main__':
+	
 	try:
+		rospy.init_node('capture', anonymous=True)
 		n = ShoeStalker('SIFT')
-		n.image()
-		n.get_new_keypoints()
-		n.publisher()
+
+
+		#creating UI window and integrating mouse event 
+		cv2.namedWindow('UI')
+		cv2.createTrackbar('Corner Threshold', 'UI', 0, 100, n.set_corner_threshold_callback)
+		cv2.createTrackbar('Ratio Threshold', 'UI', 100, 100, n.set_ratio_threshold_callback)
+		cv2.namedWindow("ShoeStream")
+		cv2.setMouseCallback("ShoeStream", n.mouse_event)
+
+		while not(rospy.is_shutdown()):
+			cv2.waitKey(50)
+			# n.get_new_keypoints()  # had to comment out to get have code run for image capture 11/1
+	#	n.publisher()
 	except rospy.ROSInterruptException: pass

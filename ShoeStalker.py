@@ -12,6 +12,8 @@ October 28, J - learned about implementing color histogram and SIFT.
 October 28, A - added capability of reading image from Neato stream. added mouse events function. 
 	Added Detect from Paul's code (altered for our use). 
 
+November 1, A - made the code really able to read images! 
+
 """
 import rospy
 import cv2
@@ -28,7 +30,6 @@ class ShoeStalker:
 	SELECTING_REGION_POINT_2 = 2
 
 	def __init__(self,descriptor):
-
 		self.detector = cv2.FeatureDetector_create(descriptor)
 		self.extractor = cv2.DescriptorExtractor_create(descriptor)
 		self.matcher = cv2.BFMatcher()
@@ -44,31 +45,34 @@ class ShoeStalker:
 
 		try:
 			#for image capture 
-			self.camera_listener = rospy.Subscriber("camera/image_raw", Image)
+			self.camera_listener = rospy.Subscriber("camera/image_raw", Image, self.capture)
 			self.bridge = CvBridge()
 			#make image something useful
 		except AttributeError:
+			print "ERROR!"
 			pass	
 
-		try:
-			self.bridge = CvBridge()
-		except NameError:
-			pass
+		# try:
+		# 	self.bridge = CvBridge()
+		# except NameError:
+		# 	pass
 		
 		self.new_img = None
 		self.new_region = None
 		self.last_detection = None
 
 	def capture(self,msg):
-		# for using the image from the Neato 
+		# IMAGE FROM NEATO 
 		#useful link for image types http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
 		cv_Shoeimage = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-		Shoeimage = np.array(cv_Shoeimage)
-		self.new_img = Shoeimage
+		#Shoeimage = np.asanyarray(cv_Shoeimage)
+		self.new_img = cv_Shoeimage
+		cv2.imshow("Shoeimage", cv_Shoeimage)
+		print "image"
 
-		# set up the ROI for tracking
-		region = self.new_img[self.new_region[1]:self.new_region[3],self.new_region[0]:self.new_region[2],:]
-		hsv_region =  cv2.cvtColor(region, cv2.COLOR_BGR2HSV)
+		# # set up the ROI for tracking
+		# region = self.new_img[self.new_region[1]:self.new_region[3],self.new_region[0]:self.new_region[2],:]
+		# hsv_region =  cv2.cvtColor(region, cv2.COLOR_BGR2HSV)
 
 		# #To use with the webcam - for testing 
 		# #take picture of shoe 
@@ -87,7 +91,9 @@ class ShoeStalker:
 
 	def get_new_keypoints(self):
 		#makes new image black and white
-
+		if self.new_img == None:
+			return
+		print self.new_img
 		new_img_bw = cv2.cvtColor(self.new_img,cv2.COLOR_BGR2GRAY)
 		#detect keypoints
 		keyp = self.detector.detect(new_img_bw)
@@ -177,6 +183,15 @@ class ShoeStalker:
 		#angular = .8
 		#pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
 
+
+	def run(self): #perhaps should move to if __name__ == '__main__', but this is how it is in the fixed image code
+		print 'run'
+		capture = cv2.VideoCapture(0)
+		ret, frame = capture.read()
+		cv2.namedWindow("image")
+		cv2.imshow("image",frame)
+		cv2.setMouseCallback("image", mouse_event)
+
 	def preloaded_reference_image(self):
 		"""displays and assigns a preloaded reference image to save time testing code"""
 		print 'preloaded reference'
@@ -186,41 +201,54 @@ class ShoeStalker:
 		cv2.waitKey(0)
 		cv2.destroyAllWindows()
 
-	def mouse_event(event,x,y,flag):
-		if event == cv2.EVENT_FLAG_LBUTTON:
-			if tracker.state == tracker.SELECTING_NEW_IMG:
-				tracker.new_img_visualize = frame.copy()
-				tracker.new_img = frame
-				tracker.new_region = None
-				tracker.state = tracker.SELECTING_REGION_PT_1
-			elif tracker.state == tracker.SELECTING_REGION_PT_1:
-				tracker.new_region = [x,y,-1,-1]
-				cv2.circle(tracker.new_img_visualize,(x,y),5,(255,0,0),5)
-				tracker.state = tracker.SELECTING_REGION_PT_2
-			else:
-				tracker.new_region[2:] = [x,y]
-				tracker.last_detection = tracker.new_region
-				cv2.circle(tracker.new_img_visualize,(x,y),5,(255,0,0),5)
-				tracker.state = tracker.SELECTING_NEW_IMG
-				tracker.get_new_keypoints()		
+
+	def publisher(self):
+		rospy.init_node('ShoeStalker', anonymous = True )
+		pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
+		
+		pub.publish('a')
+		rospy.spin()
+
+def mouse_event(event,x,y,flag):
+	"""select an image from a video stream"""
+	if event == cv2.EVENT_FLAG_LBUTTON:
+		if tracker.state == tracker.SELECTING_NEW_IMG:
+			tracker.new_img_visualize = frame.copy()
+			tracker.new_img = frame
+			tracker.new_region = None
+			tracker.state = tracker.SELECTING_REGION_PT_1
+		elif tracker.state == tracker.SELECTING_REGION_PT_1:
+			tracker.new_region = [x,y,-1,-1]
+			cv2.circle(tracker.new_img_visualize,(x,y),5,(255,0,0),5)
+			tracker.state = tracker.SELECTING_REGION_PT_2
+		else:
+			tracker.new_region[2:] = [x,y]
+			tracker.last_detection = tracker.new_region
+			cv2.circle(tracker.new_img_visualize,(x,y),5,(255,0,0),5)
+			tracker.state = tracker.SELECTING_NEW_IMG
+			tracker.get_new_keypoints()		
 
 if __name__ == '__main__':
 	try:
+		rospy.init_node('caputure', anonymous=True)
 		n = ShoeStalker('SIFT')
-		rospy.init_node('ShoeStalker', anonymous = True)
+		# rospy.init_node('ShoeStalker', anonymous = True) # don't need?
 		pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
 		pub.publish('a')
 		rospy.spin()
 
-		capture = cv2.VideoCapture(0)
-		ret, frame = capture.read()
-		cv2.namedWindow("image")
-		cv2.imshow("image",frame)
-		cv2.setMouseCallback("image", mouse_event) #listen for mouse clicks on window
+		# capture = cv2.VideoCapture(0)
+		# ret, frame = capture.read()
+		# cv2.namedWindow("image")
+		# cv2.imshow("image",frame)
+		# cv2.setMouseCallback("image", mouse_event) #listen for mouse clicks on window
 
-		while not rospy.is_shutdown():
+		while not(rospy.is_shutdown()):
+			cv2.waitKey(50)
+			# n.get_new_keypoints() # had to comment out to get have code run for image capture 11/1
 			#ret, frame = cap.read()
 			#frame = np.array(cv2.resize(frame,(frame.shape[1]/2,frame.shape[0]/2)))
+
 			#function(pub)
 			#capture frames
 
