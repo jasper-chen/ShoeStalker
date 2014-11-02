@@ -249,8 +249,9 @@ if __name__ == '__main__':
 		# rospy.init_node('ShoeStalker', anonymous = True) # don't need?
 		#pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
 		#pub.publish('a')
-		rospy.spin()
-
+		print 'a'
+		#rospy.spin()
+		print 'b'
 		#capture = cv2.VideoCapture(0)
 		#ret, frame = capture.read()
 		cv2.namedWindow('UI')
