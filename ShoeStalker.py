@@ -208,24 +208,23 @@ class ShoeStalker:
 		pub.publish('a')
 		rospy.spin()
 
-def mouse_event(event,x,y,flag):
-	"""select an image from a video stream"""
-	if event == cv2.EVENT_FLAG_LBUTTON:
-		if tracker.state == tracker.SELECTING_NEW_IMG:
-			tracker.new_img_visualize = frame.copy()
-			tracker.new_img = frame
-			tracker.new_region = None
-			tracker.state = tracker.SELECTING_REGION_PT_1
-		elif tracker.state == tracker.SELECTING_REGION_PT_1:
-			tracker.new_region = [x,y,-1,-1]
-			cv2.circle(tracker.new_img_visualize,(x,y),5,(255,0,0),5)
-			tracker.state = tracker.SELECTING_REGION_PT_2
-		else:
-			tracker.new_region[2:] = [x,y]
-			tracker.last_detection = tracker.new_region
-			cv2.circle(tracker.new_img_visualize,(x,y),5,(255,0,0),5)
-			tracker.state = tracker.SELECTING_NEW_IMG
-			tracker.get_new_keypoints()		
+	def mouse_event(event,x,y,flag):
+		if event == cv2.EVENT_FLAG_LBUTTON:
+			if self.state == self.SELECTING_NEW_IMG:
+				self.new_img_visualize = frame.copy()
+				self.new_img = frame
+				self.new_region = None
+				self.state = self.SELECTING_REGION_PT_1
+			elif self.state == self.SELECTING_REGION_PT_1:
+				self.new_region = [x,y,-1,-1]
+				cv2.circle(self.new_img_visualize,(x,y),5,(255,0,0),5)
+				self.state = self.SELECTING_REGION_PT_2
+			else:
+				self.new_region[2:] = [x,y]
+				self.last_detection = self.new_region
+				cv2.circle(self.new_img_visualize,(x,y),5,(255,0,0),5)
+				self.state = self.SELECTING_NEW_IMG
+				self.get_new_keypoints()		
 
 if __name__ == '__main__':
 	try:
