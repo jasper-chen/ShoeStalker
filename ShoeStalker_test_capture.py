@@ -31,7 +31,6 @@ class ShoeStalker:
 		self.extractor = cv2.DescriptorExtractor_create(descriptor)
 		self.matcher = cv2.BFMatcher()
 		self.new_img = None
-		#cv2.imread('./shoefront/frame0000.jpg')
 		self.new_region = None
 		self.last_detection = None
 
@@ -66,10 +65,11 @@ class ShoeStalker:
 		cv_Shoeimage = self.bridge.imgmsg_to_cv2(msg, "bgr8")
 		#Shoeimage = np.asanyarray(cv_Shoeimage)
 		self.new_img = cv_Shoeimage
+		print self.new_img.shape
 		cv2.imshow("ShoeStream", cv_Shoeimage)
 		print "image"
 
-		# # set up the ROI for tracking
+		# # set up the region for tracking
 		# region = self.new_img[self.new_region[1]:self.new_region[3],self.new_region[0]:self.new_region[2],:]
 		# hsv_region =  cv2.cvtColor(region, cv2.COLOR_BGR2HSV)
 
@@ -189,13 +189,6 @@ class ShoeStalker:
 		#angular = .8
 		#pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
 
-	# def run(self):  #doesn't seem to be necessary...
-	# 	print 'run'
-		# capture = cv2.VideoCapture(0)
-		# ret, frame = capture.read()
-		# cv2.namedWindow("image")
-		# cv2.imshow("image",frame)
-		
 	def preloaded_reference_image(self):
 		"""displays and assigns a preloaded reference image to save time testing code"""
 		print 'preloaded reference'
@@ -221,7 +214,7 @@ class ShoeStalker:
 		self.set_ratio_threshold(ratio/100.0)
 
 
-	def mouse_event(event,x,y,flag):
+	def mouse_event(event,x,y,flag,im):
 		if event == cv2.EVENT_FLAG_LBUTTON:
 			if self.state == self.SELECTING_NEW_IMG:
 				self.new_img_visualize = frame.copy()
@@ -253,8 +246,40 @@ if __name__ == '__main__':
 		cv2.namedWindow("ShoeStream")
 		cv2.setMouseCallback("ShoeStream", n.mouse_event)
 
-		while not(rospy.is_shutdown()):
+		while True:
+			# ret, frame = cap.read()
+			frame = np.array(cv2.resize(n.new_img,(n.new_img.shape[1]/2,frame.shape[0]/2)))
+
+			if n.state == n.SELECTING_QUERY_IMG:
+				if n.query_region != None:
+					n.track(cv.Shoeimage)
+
+					# add the query image to the side
+					combined_img = np.zeros((n.new_img.shape[0],n.new_img.shape[1]+(n.query_region[2]-n.query_region[0]),n.new_img.shape[2]),dtype=n.new_img.dtype)
+					combined_img[:,0:n.new_img.shape[1],:] = n.new_img
+					combined_img[0:(n.query_region[3]-n.query_region[1]),n.new_img.shape[1]:,:] = (
+							n.query_img[n.query_region[1]:n.query_region[3],
+											  n.query_region[0]:n.query_region[2],:])
+					# plot the matching points and correspondences
+					for i in range(n.matching_query_pts.shape[0]):
+						cv2.circle(combined_img,(int(n.matching_training_pts[i,0]),int(n.matching_training_pts[i,1])),2,(255,0,0),2)
+						cv2.line(combined_img,(int(n.matching_training_pts[i,0]), int(n.matching_training_pts[i,1])),
+											  (int(n.matching_query_pts[i,0]+cv.Shoeimage.shape[1]),int(n.matching_query_pts[i,1])),
+											  (0,255,0))
+
+					for pt in n.query_keypoints:
+						cv2.circle(combined_img,(int(pt.pt[0]+n.new_img.shape[1]),int(pt.pt[1])),2,(255,0,0),1)
+					cv2.rectangle(combined_img,(n.last_detection[0],n.last_detection[1]),(n.last_detection[2],n.last_detection[3]),(0,0,255),2)
+
+					cv2.imshow("MYWIN",combined_img)
+				else:
+					cv2.imshow("MYWIN",cv.Shoeimage)
+			else:
+				cv2.imshow("MYWIN",n.query_img_visualize)
 			cv2.waitKey(50)
-			# n.get_new_keypoints()  # had to comment out to get have code run for image capture 11/1
+
+		# while not(rospy.is_shutdown()):
+		# 	cv2.waitKey(50)
+		# 	# n.get_new_keypoints()  # had to comment out to get have code run for image capture 11/1
 	#	n.publisher()
 	except rospy.ROSInterruptException: pass
