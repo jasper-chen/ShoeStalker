@@ -201,6 +201,7 @@ class ShoeStalker:
 		cv2.waitKey(0)
 		cv2.destroyAllWindows()
 
+
 	def publisher(self):
 		rospy.init_node('ShoeStalker', anonymous = True )
 		pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
@@ -232,6 +233,8 @@ if __name__ == '__main__':
 		n = ShoeStalker('SIFT')
 		# rospy.init_node('ShoeStalker', anonymous = True) # don't need?
 		pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
+		pub.publish('a')
+		rospy.spin()
 
 		# capture = cv2.VideoCapture(0)
 		# ret, frame = capture.read()
