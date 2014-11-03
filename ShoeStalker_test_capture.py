@@ -110,7 +110,7 @@ class ShoeStalker:
 			#makes sure distance to closest match is sufficiently better than to 2nd closest
 			if (m.distance < self.ration_threshold*n.distance and
 				training_keypoints[m.trainIdx].response >self.corner_threshold):
-				good_matches.append((m.queryIdx, m.drainIdx))
+				good_matches.append((m.queryIdx, m.trainIdx))
 
 		self.matching_new_pts = np.zeros((len(good_matches),2))
 		self.matching_training_pts = np.zeros((len(good_matches),2))

@@ -101,7 +101,7 @@ class ShoeStalker:
 			#reassign keypoints and descriptors
 			self.new_keypoints = keyp
 			self.new_descriptors = describe
-			#print keyp,describe
+			print keyp,describe
 
 	def detect(self, im):
 		print 'detect'
