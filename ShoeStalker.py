@@ -34,7 +34,6 @@ class ShoeStalker:
 		self.extractor = cv2.DescriptorExtractor_create(descriptor)
 		self.matcher = cv2.BFMatcher()
 		self.new_img = None
-		#cv2.imread('./shoefront/frame0000.jpg')
 		self.new_region = None
 		self.last_detection = None
 		self.new_descriptors = None
@@ -52,11 +51,6 @@ class ShoeStalker:
 		except AttributeError:
 			print "ERROR!"
 			pass	
-
-		# try:
-		# 	self.bridge = CvBridge()
-		# except NameError:
-		# 	pass
 		
 		self.new_img = None
 		self.new_region = None
@@ -68,27 +62,12 @@ class ShoeStalker:
 		cv_Shoeimage = self.bridge.imgmsg_to_cv2(msg, "bgr8")
 		#Shoeimage = np.asanyarray(cv_Shoeimage)
 		self.new_img = cv_Shoeimage
-		cv2.imshow("ShoeImage", cv_Shoeimage)
+		#cv2.imshow("ShoeImage", cv_Shoeimage)
 		print "image"
 
 		# # set up the ROI for tracking
 		# region = self.new_img[self.new_region[1]:self.new_region[3],self.new_region[0]:self.new_region[2],:]
 		# hsv_region =  cv2.cvtColor(region, cv2.COLOR_BGR2HSV)
-
-		# #To use with the webcam - for testing 
-		# #take picture of shoe 
-		# capture = cv.CaptureFromCAM(0)
-		# img = cv.NewFrame(capture)
-		# plt.imshow(img, cmap = 'gray', interpolation = 'bicubic') # shows image
-		# #save image to specific location
-		# cv.SaveImage("captured_shoe",img)
-		# #read back image (necessary?)
-		# img = cv2.imread('captured_shoe')
-		# if cv2.waitKey(1) & 0xFF == ord('q'):
-		# 	print 'break'
-		# 	#break
-		# # When everything done, release the capture
-		# cap.release()
 
 	def set_ratio_threshold(self,thresh):
 		self.ratio_threshold = thresh
@@ -101,6 +80,8 @@ class ShoeStalker:
 		if self.new_img == None:
 			return
 		elif self.new_region == None:
+			#added for testing. issues with having no new region
+			print 'help... help...'
 			return
 		else:
 			#print self.new_img
@@ -255,7 +236,7 @@ class ShoeStalker:
 
 if __name__ == '__main__':
 	try:
-		rospy.init_node('caputure', anonymous=True)
+		rospy.init_node('capture', anonymous=True)
 		n = ShoeStalker('SIFT')
 		# rospy.init_node('ShoeStalker', anonymous = True) # don't need?
 		#pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
@@ -268,42 +249,43 @@ if __name__ == '__main__':
 		cv2.namedWindow('UI')
 		cv2.createTrackbar('Corner Threshold', 'UI', 0, 100, n.set_corner_threshold_callback)
 		cv2.createTrackbar('Ratio Threshold', 'UI', 100, 100, n.set_ratio_threshold_callback)
-		
 		cv2.namedWindow("ShoeImage")
-		#cv2.imshow("image",frame)
 		cv2.setMouseCallback("ShoeImage", n.mouse_event) #listen for mouse clicks on window
 
 		while not(rospy.is_shutdown()):
-			n.get_new_keypoints() # had to comment out to get have code run for image capture 11/1
-			ret, frame = cap.read()
-			frame = np.array(cv2.resize(frame,(frame.shape[1]/2,frame.shape[0]/2)))
-
-			if n.state == n.SELECTING_NEW_IMG:
-				if n.new_region != None:
-					n.track(frame)
-
-					# add the new image to the side
-					combined_img = np.zeros((frame.shape[0],frame.shape[1]+(n.new_region[2]-n.new_region[0]),frame.shape[2]),dtype=frame.dtype)
-					combined_img[:,0:frame.shape[1],:] = frame
-					combined_img[0:(n.new_region[3]-n.new_region[1]),frame.shape[1]:,:] = (
-							n.new_img[n.new_region[1]:n.new_region[3],
-											  n.new_region[0]:n.new_region[2],:])
-					# plot the matching points and correspondences
-					for i in range(n.matching_new_pts.shape[0]):
-						cv2.circle(combined_img,(int(n.matching_training_pts[i,0]),int(n.matching_training_pts[i,1])),2,(255,0,0),2)
-						cv2.line(combined_img,(int(n.matching_training_pts[i,0]), int(n.matching_training_pts[i,1])),
-											  (int(n.matching_new_pts[i,0]+frame.shape[1]),int(n.matching_new_pts[i,1])),
-											  (0,255,0))
-
-					for pt in n.new_keypoints:
-						cv2.circle(combined_img,(int(pt.pt[0]+frame.shape[1]),int(pt.pt[1])),2,(255,0,0),1)
-					cv2.rectangle(combined_img,(n.last_detection[0],n.last_detection[1]),(n.last_detection[2],n.last_detection[3]),(0,0,255),2)
-
-					cv2.imshow("ShoeImage",combined_img)
-				else:
-					cv2.imshow("ShoeImage",frame)
+			if n.new_img == None:
+				print 'nope'
 			else:
-				cv2.imshow("ShoeImage",n.new_img_visualize)
+				#n.get_new_keypoints() # had to comment out to get have code run for image capture 11/1
+				#ret, frame = cap.read()
+				frame = np.array(cv2.resize(n.new_img,(n.new_img.shape[1]/2,n.new_img.shape[0]/2)))
+
+				if n.state == n.SELECTING_NEW_IMG:
+					if n.new_region != None:
+						n.detect(frame)
+
+						# add the new image to the side
+						combined_img = np.zeros((frame.shape[0],frame.shape[1]+(n.new_region[2]-n.new_region[0]),frame.shape[2]),dtype=frame.dtype)
+						combined_img[:,0:frame.shape[1],:] = frame
+						combined_img[0:(n.new_region[3]-n.new_region[1]),frame.shape[1]:,:] = (
+								n.new_img[n.new_region[1]:n.new_region[3],
+												  n.new_region[0]:n.new_region[2],:])
+						# plot the matching points and correspondences
+						for i in range(n.matching_new_pts.shape[0]):
+							cv2.circle(combined_img,(int(n.matching_training_pts[i,0]),int(n.matching_training_pts[i,1])),2,(255,0,0),2)
+							cv2.line(combined_img,(int(n.matching_training_pts[i,0]), int(n.matching_training_pts[i,1])),
+												  (int(n.matching_new_pts[i,0]+frame.shape[1]),int(n.matching_new_pts[i,1])),
+												  (0,255,0))
+
+						for pt in n.new_keypoints:
+							cv2.circle(combined_img,(int(pt.pt[0]+frame.shape[1]),int(pt.pt[1])),2,(255,0,0),1)
+						cv2.rectangle(combined_img,(n.last_detection[0],n.last_detection[1]),(n.last_detection[2],n.last_detection[3]),(0,0,255),2)
+
+						cv2.imshow("ShoeImage",combined_img)
+					else:
+						cv2.imshow("ShoeImage",frame)
+				else:
+					cv2.imshow("ShoeImage",n.new_img_visualize)
 
 			cv2.waitKey(50)
 			
