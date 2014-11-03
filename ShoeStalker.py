@@ -37,6 +37,7 @@ class ShoeStalker:
 		#cv2.imread('./shoefront/frame0000.jpg')
 		self.new_region = None
 		self.last_detection = None
+		self.new_descriptors = None
 
 		self.corner_threshold = 0.0
 		self.ratio_threshold = 1.0
@@ -99,22 +100,27 @@ class ShoeStalker:
 		#makes new image black and white
 		if self.new_img == None:
 			return
-		print self.new_img
-		new_img_bw = cv2.cvtColor(self.new_img,cv2.COLOR_BGR2GRAY)
-		#detect keypoints
-		keyp = self.detector.detect(new_img_bw)
-		#compare keypoints
-		keyp = [point
-			  for point in keyp if (point.response > self.corner_threshold and
-							   self.new_region[0] <= point.point[0] < self.new_region[2] and
-							   self.new_region[1] <= point.point[1] < self.new_region[3])]
-		dc, describe = self.extractor.compute(new_img_bw,keyp)
-		#remap keypoints so relative to new region
-		for point in keyp:
-			point.point = (point.point[0] - self.new_region[0],point.point[1] - self.new_region[1])
-		#reassign keypoints and descriptors
-		self.new_keypoints = keyp
-		self.new_descriptors = describe
+		elif self.new_region == None:
+			return
+		else:
+			#print self.new_img
+			new_img_bw = cv2.cvtColor(self.new_img,cv2.COLOR_BGR2GRAY)
+			print new_img_bw.shape
+			#detect keypoints
+			keyp = self.detector.detect(new_img_bw)
+			#compare keypoints
+			keyp = [pt
+				    for pt in keyp if (pt.response > self.corner_threshold and
+								   self.new_region[0] <= pt.pt[0] < self.new_region[2] and
+								   self.new_region[1] <= pt.pt[1] < self.new_region[3])]
+			dc, describe = self.extractor.compute(new_img_bw,keyp)
+			#remap keypoints so relative to new region
+			for pt in keyp:
+				pt.pt = (pt.pt[0] - self.new_region[0],pt.pt[1] - self.new_region[1])
+			#reassign keypoints and descriptors
+			self.new_keypoints = keyp
+			self.new_descriptors = describe
+			#print keyp,describe
 
 	def detect(self, im):
 		print 'detect'
@@ -123,15 +129,15 @@ class ShoeStalker:
 		img_bw = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
 		training_keypoints = self.detector.detect(img_bw)
 
-		desc, trainig_descriptors = self.estractor.compute(img_bw, training_keypoints)
+		desc, training_descriptors = self.extractor.compute(img_bw,training_keypoints)
 		#finds the k best matches for each descriptor from a query set. (http://docs.opencv.org/modules/features2d/doc/common_interfaces_of_descriptor_matchers.html)
 		matches = self.matcher.knnMatch(self.new_descriptors, training_descriptors, k=2)
 		good_matches = []
 		for m,n in matches: 
 			#makes sure distance to closest match is sufficiently better than to 2nd closest
-			if (m.distance < self.ration_threshold*n.distance and
+			if (m.distance < self.ratio_threshold*n.distance and
 				training_keypoints[m.trainIdx].response >self.corner_threshold):
-				good_matches.append((m.queryIdx, m.drainIdx))
+				good_matches.append((m.queryIdx, m.trainIdx))
 
 		self.matching_new_pts = np.zeros((len(good_matches),2))
 		self.matching_training_pts = np.zeros((len(good_matches),2))
@@ -145,8 +151,12 @@ class ShoeStalker:
 
 		track_im_visualize = track_im.copy()
 
-		#converting to (x,y,z,h)
-		track_region = (self.last_detection[0],self.last_detection[1],self.last_detection[2]-self.last_detection[0],self.last_detection[3]-self.last_detection[1])
+		#converting to (x,y,z,h)\
+		if self.last_detection == None:
+			print 'return'
+			return
+		else:
+			track_region = (self.last_detection[0],self.last_detection[1],self.last_detection[2]-self.last_detection[0],self.last_detection[3]-self.last_detection[1])
 
 		#setup criterial for termination, either 10 iteritation or move at least 1 pt
 		#done to plot intermediate results of mean shift
@@ -165,6 +175,7 @@ class ShoeStalker:
 
 		xpos = 0
 		distance = 0
+		print 'xpos,distance'
 		return xpos,distance
 
 	def stalk(self): #potentially add distance to shoe if that happens
@@ -215,17 +226,17 @@ class ShoeStalker:
 	# 	pub.publish('a')
 	# 	rospy.spin()
 
-	def mouse_event(event,x,y,flag):
+	def mouse_event(self,event,x,y,flag,im):
 		if event == cv2.EVENT_FLAG_LBUTTON:
 			if self.state == self.SELECTING_NEW_IMG:
 				self.new_img_visualize = frame.copy()
 				self.new_img = frame
 				self.new_region = None
-				self.state = self.SELECTING_REGION_PT_1
-			elif self.state == self.SELECTING_REGION_PT_1:
+				self.state = self.SELECTING_REGION_POINT_1
+			elif self.state == self.SELECTING_REGION_POINT_1:
 				self.new_region = [x,y,-1,-1]
 				cv2.circle(self.new_img_visualize,(x,y),5,(255,0,0),5)
-				self.state = self.SELECTING_REGION_PT_2
+				self.state = self.SELECTING_REGION_POINT_2
 			else:
 				self.new_region[2:] = [x,y]
 				self.last_detection = self.new_region
@@ -233,12 +244,12 @@ class ShoeStalker:
 				self.state = self.SELECTING_NEW_IMG
 				self.get_new_keypoints()
 
-	def set_corner_threshold_callback(thresh):
+	def set_corner_threshold_callback(self, thresh):
 		""" Sets the threshold to consider an interest point a corner.  The higher the value
 			the more the point must look like a corner to be considered """
 		self.set_corner_threshold(thresh/1000.0)
 
-	def set_ratio_threshold_callback(ratio):
+	def set_ratio_threshold_callback(self, ratio):
 		""" Sets the ratio of the nearest to the second nearest neighbor to consider the match a good one """
 		self.set_ratio_threshold(ratio/100.0)		
 
@@ -249,10 +260,11 @@ if __name__ == '__main__':
 		# rospy.init_node('ShoeStalker', anonymous = True) # don't need?
 		#pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
 		#pub.publish('a')
-		rospy.spin()
+		#rospy.spin()
 
 		#capture = cv2.VideoCapture(0)
 		#ret, frame = capture.read()
+		#cap = cv2.VideoCapture(0)
 		cv2.namedWindow('UI')
 		cv2.createTrackbar('Corner Threshold', 'UI', 0, 100, n.set_corner_threshold_callback)
 		cv2.createTrackbar('Ratio Threshold', 'UI', 100, 100, n.set_ratio_threshold_callback)
@@ -262,11 +274,39 @@ if __name__ == '__main__':
 		cv2.setMouseCallback("ShoeImage", n.mouse_event) #listen for mouse clicks on window
 
 		while not(rospy.is_shutdown()):
-			cv2.waitKey(50)
-			# n.get_new_keypoints() # had to comment out to get have code run for image capture 11/1
-			#ret, frame = cap.read()
-			#frame = np.array(cv2.resize(frame,(frame.shape[1]/2,frame.shape[0]/2)))
+			n.get_new_keypoints() # had to comment out to get have code run for image capture 11/1
+			ret, frame = cap.read()
+			frame = np.array(cv2.resize(frame,(frame.shape[1]/2,frame.shape[0]/2)))
 
+			if n.state == n.SELECTING_NEW_IMG:
+				if n.new_region != None:
+					n.track(frame)
+
+					# add the new image to the side
+					combined_img = np.zeros((frame.shape[0],frame.shape[1]+(n.new_region[2]-n.new_region[0]),frame.shape[2]),dtype=frame.dtype)
+					combined_img[:,0:frame.shape[1],:] = frame
+					combined_img[0:(n.new_region[3]-n.new_region[1]),frame.shape[1]:,:] = (
+							n.new_img[n.new_region[1]:n.new_region[3],
+											  n.new_region[0]:n.new_region[2],:])
+					# plot the matching points and correspondences
+					for i in range(n.matching_new_pts.shape[0]):
+						cv2.circle(combined_img,(int(n.matching_training_pts[i,0]),int(n.matching_training_pts[i,1])),2,(255,0,0),2)
+						cv2.line(combined_img,(int(n.matching_training_pts[i,0]), int(n.matching_training_pts[i,1])),
+											  (int(n.matching_new_pts[i,0]+frame.shape[1]),int(n.matching_new_pts[i,1])),
+											  (0,255,0))
+
+					for pt in n.new_keypoints:
+						cv2.circle(combined_img,(int(pt.pt[0]+frame.shape[1]),int(pt.pt[1])),2,(255,0,0),1)
+					cv2.rectangle(combined_img,(n.last_detection[0],n.last_detection[1]),(n.last_detection[2],n.last_detection[3]),(0,0,255),2)
+
+					cv2.imshow("ShoeImage",combined_img)
+				else:
+					cv2.imshow("ShoeImage",frame)
+			else:
+				cv2.imshow("ShoeImage",n.new_img_visualize)
+
+			cv2.waitKey(50)
+			
 			#function(pub)
 			#capture frames
 
