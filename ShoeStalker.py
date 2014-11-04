@@ -18,11 +18,14 @@ November 1, A - made the code really able to read images!
 import rospy
 import cv2
 import numpy as np
+import math 
 
 from geometry_msgs.msg import Twist, Vector3
 from matplotlib import pyplot as plt
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
+from sensor_msgs.msg import LaserScan
+from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped, PoseArray, Pose, Point, Quaternion, Vector3
 
 class ShoeStalker:
 	SELECTING_NEW_IMG = 0
@@ -37,6 +40,7 @@ class ShoeStalker:
 		self.new_region = None
 		self.last_detection = None
 		self.new_descriptors = None
+		rospy.Subscriber("scan", LaserScan, self.scan_received, queue_size=1)
 		self.new_keypoints = None
 
 		self.corner_threshold = 0.0
@@ -56,6 +60,10 @@ class ShoeStalker:
 		self.new_img = None
 		self.new_region = None
 		self.last_detection = None
+
+	def scan_received(self,msg):
+		pass
+
 
 	def capture(self,msg):
 		# IMAGE FROM NEATO 
@@ -162,19 +170,35 @@ class ShoeStalker:
 		#print 'xpos,distance'
 		#return xpos,distance
 
-	def stalk(self): #potentially add distance to shoe if that happens
+	def approach_shoe(self,msg):
+		# making the robot stop if it gets within a meter of the shoe (the thing directly in front of it)
+		liner = 0
+		angular = 0 
+		#this needs to be checked over when I am less tired! Probably should be put directly into the "stalk" function  
+		for degree in range():
+				if msg.ranges[degree] > 340.0 and msg.ranges[degree] < 20.0:
+					#get position of laser points
+					data_x = self.odom_pose[0] + msg.ranges[degree]*math.cos(degree*math.pi/180.0 + self.odom_pose[2])
+					data_y = self.odom_pose[1] + msg.ranges[degree]*math.sin(degree*math.pi/180+self.odom_pose[2])
+					magnitude[degree] = math.sqrt(data_x**2 + data_y**2) 
+					pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
+					
+
+	def stalk(self): 
 		print 'stalk'
 		#move robot so shoe is in center of image (or will it already be like this?)
 		#move towards the shoes
 
-		#xpos,distance = self.detecting(self.new_image)
+		#xpos,distance = self.detect(self.new_image) 
 
-		#if xpos > 0:
-			#linear = .5
+		if xpos > 0:
+			linear = .5
 			#angular = xpos * something depending on what the units of xpos are
-			#pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
-		#else:
-			#self.lostshoe()
+			pub.publish(Twist(linear=Vector3(x=0),angular=Vector3(z=0)))
+		elif:
+			self.approach_shoe()
+		else:
+			self.lostshoe()
 
 	def lostshoe(self):
 		"""refinds a lost shoe, turn towards location of last shoe. currently just turning"""
