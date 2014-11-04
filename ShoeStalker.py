@@ -180,11 +180,12 @@ class ShoeStalker:
 					#get position of laser points
 					data_x = self.odom_pose[0] + msg.ranges[degree]*math.cos(degree*math.pi/180.0 + self.odom_pose[2])
 					data_y = self.odom_pose[1] + msg.ranges[degree]*math.sin(degree*math.pi/180+self.odom_pose[2])
-					magnitude[degree] = math.sqrt(data_x**2 + data_y**2) 
+					self.magnitude[degree] = math.sqrt(data_x**2 + data_y**2) 
+				if magnitude[degree] < 1: 
 					pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
 					
 
-	def stalk(self): 
+	def stalk(self,msg): 
 		print 'stalk'
 		#move robot so shoe is in center of image (or will it already be like this?)
 		#move towards the shoes
@@ -195,7 +196,7 @@ class ShoeStalker:
 			linear = .5
 			#angular = xpos * something depending on what the units of xpos are
 			pub.publish(Twist(linear=Vector3(x=0),angular=Vector3(z=0)))
-		elif:
+		elif self.magnitude[degree]:
 			self.approach_shoe()
 		else:
 			self.lostshoe()
