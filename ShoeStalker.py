@@ -41,6 +41,7 @@ class ShoeStalker:
 		self.last_detection = None
 		self.new_descriptors = None
 		rospy.Subscriber("scan", LaserScan, self.scan_received, queue_size=1)
+		self.new_keypoints = None
 
 		self.corner_threshold = 0.0
 		self.ratio_threshold = 1.0
@@ -67,7 +68,7 @@ class ShoeStalker:
 		#Shoeimage = np.asanyarray(cv_Shoeimage)
 		self.new_img = cv_Shoeimage
 		#cv2.imshow("ShoeImage", cv_Shoeimage)
-		print "image"
+		#print "image"
 
 		# # set up the ROI for tracking
 		# region = self.new_img[self.new_region[1]:self.new_region[3],self.new_region[0]:self.new_region[2],:]
@@ -80,48 +81,54 @@ class ShoeStalker:
 		self.corner_threshold = thresh
 
 	def get_new_keypoints(self):
-		#makes new image black and white
-		if self.new_img == None:
-			return
-		elif self.new_region == None:
-			#added for testing. issues with having no new region
-			print 'help... help...'
-			return
-		else:
-			#print self.new_img
-			new_img_bw = cv2.cvtColor(self.new_img,cv2.COLOR_BGR2GRAY)
-			print new_img_bw.shape
-			#detect keypoints
-			keyp = self.detector.detect(new_img_bw)
-			#compare keypoints
-			keyp = [pt
-				    for pt in keyp if (pt.response > self.corner_threshold and
-								   self.new_region[0] <= pt.pt[0] < self.new_region[2] and
-								   self.new_region[1] <= pt.pt[1] < self.new_region[3])]
-			dc, describe = self.extractor.compute(new_img_bw,keyp)
-			#remap keypoints so relative to new region
-			for pt in keyp:
-				pt.pt = (pt.pt[0] - self.new_region[0],pt.pt[1] - self.new_region[1])
-			#reassign keypoints and descriptors
-			self.new_keypoints = keyp
-			self.new_descriptors = describe
-			print keyp,describe
+		# #makes new image black and white
+		# if self.new_img == None:
+		# 	return
+		# elif self.new_region == None:
+		# 	#added for testing. issues with having no new region
+		# 	print 'help... help...'
+		# 	return
+		# else:
+		#print self.new_img
+		new_img_bw = cv2.cvtColor(self.new_img,cv2.COLOR_BGR2GRAY)
+		print 'maybe?'#new_img_bw.shape
+		#detect keypoints
+		keyp = self.detector.detect(new_img_bw)
+		#compare keypoints
+		keyp = [pt
+			    for pt in keyp if (pt.response > self.corner_threshold and
+							   self.new_region[0] <= pt.pt[0] < self.new_region[2] and
+							   self.new_region[1] <= pt.pt[1] < self.new_region[3])]
+		dc, describe = self.extractor.compute(new_img_bw,keyp)
+		#remap keypoints so relative to new region
+		for pt in keyp:
+			pt.pt = (pt.pt[0] - self.new_region[0],pt.pt[1] - self.new_region[1])
+		#reassign keypoints and descriptors
+		self.new_keypoints = keyp
+		self.new_descriptors = describe
+		print 'keypoints, describe'
+		print keyp,describe
 
-	def detect(self, im):
+	def detecting(self, im):
 		print 'detect'
 
 		#Pauls Code - went through it and changed it to fit ours. will probably need further alterations
 		img_bw = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
 		training_keypoints = self.detector.detect(img_bw)
+		#print training_keypoints
+		print "new_descriptors"
+		print self.new_descriptors
 
 		desc, training_descriptors = self.extractor.compute(img_bw,training_keypoints)
 		#finds the k best matches for each descriptor from a query set. (http://docs.opencv.org/modules/features2d/doc/common_interfaces_of_descriptor_matchers.html)
 		matches = self.matcher.knnMatch(self.new_descriptors, training_descriptors, k=2)
+		print matches
 		good_matches = []
 		for m,n in matches: 
 			#makes sure distance to closest match is sufficiently better than to 2nd closest
 			if (m.distance < self.ratio_threshold*n.distance and
 				training_keypoints[m.trainIdx].response >self.corner_threshold):
+				print 'uuuuuuuuuuuuuuurg'
 				good_matches.append((m.queryIdx, m.trainIdx))
 
 		self.matching_new_pts = np.zeros((len(good_matches),2))
@@ -137,11 +144,7 @@ class ShoeStalker:
 		track_im_visualize = track_im.copy()
 
 		#converting to (x,y,z,h)\
-		if self.last_detection == None:
-			print 'return'
-			return
-		else:
-			track_region = (self.last_detection[0],self.last_detection[1],self.last_detection[2]-self.last_detection[0],self.last_detection[3]-self.last_detection[1])
+		track_region = (self.last_detection[0],self.last_detection[1],self.last_detection[2]-self.last_detection[0],self.last_detection[3]-self.last_detection[1])
 
 		#setup criterial for termination, either 10 iteritation or move at least 1 pt
 		#done to plot intermediate results of mean shift
@@ -158,10 +161,10 @@ class ShoeStalker:
 		#pick shoe by image of shoe with the most keypoints
 		#return location of shoes (I think it might be easier to use one location of a shoe)
 
-		xpos = 0
-		distance = 0
-		print 'xpos,distance'
-		return xpos,distance
+		#xpos = 0
+		#distance = 0
+		#print 'xpos,distance'
+		#return xpos,distance
 
 	# def approach_shoe(self,msg):
 	# 	# making the robot stop if it gets within a meter of the shoe (the thing directly in front of it)
@@ -240,6 +243,7 @@ class ShoeStalker:
 				cv2.circle(self.new_img_visualize,(x,y),5,(255,0,0),5)
 				self.state = self.SELECTING_REGION_POINT_2
 			else:
+				print 'get new keypoints'
 				self.new_region[2:] = [x,y]
 				self.last_detection = self.new_region
 				cv2.circle(self.new_img_visualize,(x,y),5,(255,0,0),5)
@@ -283,7 +287,7 @@ if __name__ == '__main__':
 
 				if n.state == n.SELECTING_NEW_IMG:
 					if n.new_region != None:
-						n.detect(frame)
+						n.detecting(frame)
 
 						# add the new image to the side
 						combined_img = np.zeros((frame.shape[0],frame.shape[1]+(n.new_region[2]-n.new_region[0]),frame.shape[2]),dtype=frame.dtype)
@@ -298,7 +302,11 @@ if __name__ == '__main__':
 												  (int(n.matching_new_pts[i,0]+frame.shape[1]),int(n.matching_new_pts[i,1])),
 												  (0,255,0))
 
+							print 'hello?'
+						print 'new_keypoints'
+						print n.new_keypoints
 						for pt in n.new_keypoints:
+							print 'hello'
 							cv2.circle(combined_img,(int(pt.pt[0]+frame.shape[1]),int(pt.pt[1])),2,(255,0,0),1)
 						cv2.rectangle(combined_img,(n.last_detection[0],n.last_detection[1]),(n.last_detection[2],n.last_detection[3]),(0,0,255),2)
 
