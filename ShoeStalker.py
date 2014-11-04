@@ -61,6 +61,10 @@ class ShoeStalker:
 		self.new_region = None
 		self.last_detection = None
 
+	def scan_received(self,msg):
+		pass
+
+
 	def capture(self,msg):
 		# IMAGE FROM NEATO 
 		#useful link for image types http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
@@ -190,10 +194,10 @@ class ShoeStalker:
 
 		if xpos > 0:
 			linear = .5
-			angular = xpos * something depending on what the units of xpos are
+			#angular = xpos * something depending on what the units of xpos are
 			pub.publish(Twist(linear=Vector3(x=0),angular=Vector3(z=0)))
-		elif:
-			self.approach_shoe()
+		#elif:
+			#self.approach_shoe()
 		else:
 			self.lostshoe()
 
