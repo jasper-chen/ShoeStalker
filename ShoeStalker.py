@@ -42,6 +42,7 @@ class ShoeStalker:
 		self.new_descriptors = None
 		rospy.Subscriber("scan", LaserScan, self.scan_received, queue_size=1)
 		self.new_keypoints = None
+		self.magnitude=None
 
 		self.corner_threshold = 0.0
 		self.ratio_threshold = 1.0
@@ -110,7 +111,7 @@ class ShoeStalker:
 		#reassign keypoints and descriptors
 		self.new_keypoints = keyp
 		self.new_descriptors = describe
-		zprint 'keypoints, describe'
+		print 'keypoints, describe'
 		#print keyp,describe
 
 	def detecting(self, im):
@@ -180,7 +181,7 @@ class ShoeStalker:
 					#get position of laser points
 					data_x = self.odom_pose[0] + msg.ranges[degree]*math.cos(degree*math.pi/180.0 + self.odom_pose[2])
 					data_y = self.odom_pose[1] + msg.ranges[degree]*math.sin(degree*math.pi/180+self.odom_pose[2])
-					magnitude[degree] = math.sqrt(data_x**2 + data_y**2) 
+					self.magnitude[degree] = math.sqrt(data_x**2 + data_y**2) 
 					pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
 					
 
@@ -195,7 +196,7 @@ class ShoeStalker:
 			linear = .5
 			#angular = xpos * something depending on what the units of xpos are
 			pub.publish(Twist(linear=Vector3(x=0),angular=Vector3(z=0)))
-		elif:
+		elif self.magnitude > 1:
 			self.approach_shoe()
 		else:
 			self.lostshoe()
