@@ -170,22 +170,21 @@ class ShoeStalker:
 		#print 'xpos,distance'
 		#return xpos,distance
 
-	# def approach_shoe(self,msg):
-	# 	# making the robot stop if it gets within a meter of the shoe (the thing directly in front of it)
-
-	# 	#this needs to be checked over when I am less tired! Probably should be put directly into the "stalk" function  
-	# 	for degree in range():
-	# 			if msg.ranges[degree] > 340.0 and msg.ranges[degree] < 20.0:
-	# 				#get position of laser points
-	# 				data_x = self.odom_pose[0] + msg.ranges[degree]*math.cos(degree*math.pi/180.0 + self.odom_pose[2])
-	# 				data_y = self.odom_pose[1] + msg.ranges[degree]*math.sin(degree*math.pi/180+self.odom_pose[2])
-	# 				magnitude[degree] = math.sqrt(data_x**2 + data_y**2) 
-	# 	for #make this thing a for loop, and iterate over an array of magnitudes in it. 
-	# 		if magnitude[] < 1:
-	# 			pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
+	def approach_shoe(self,msg):
+		# making the robot stop if it gets within a meter of the shoe (the thing directly in front of it)
+		liner = 0
+		angular = 0 
+		#this needs to be checked over when I am less tired! Probably should be put directly into the "stalk" function  
+		for degree in range():
+				if msg.ranges[degree] > 340.0 and msg.ranges[degree] < 20.0:
+					#get position of laser points
+					data_x = self.odom_pose[0] + msg.ranges[degree]*math.cos(degree*math.pi/180.0 + self.odom_pose[2])
+					data_y = self.odom_pose[1] + msg.ranges[degree]*math.sin(degree*math.pi/180+self.odom_pose[2])
+					magnitude[degree] = math.sqrt(data_x**2 + data_y**2) 
+					pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
 					
 
-	def stalk(self): #potentially add distance to shoe if that happens
+	def stalk(self): 
 		print 'stalk'
 		#move robot so shoe is in center of image (or will it already be like this?)
 		#move towards the shoes
@@ -196,8 +195,8 @@ class ShoeStalker:
 			linear = .5
 			#angular = xpos * something depending on what the units of xpos are
 			pub.publish(Twist(linear=Vector3(x=0),angular=Vector3(z=0)))
-		#elif:
-			#self.approach_shoe()
+		elif:
+			self.approach_shoe()
 		else:
 			self.lostshoe()
 
