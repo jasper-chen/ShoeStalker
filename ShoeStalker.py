@@ -63,13 +63,16 @@ class ShoeStalker:
 	def scan_received(self,msg):
 		pass
 
-
 	def capture(self,msg):
 		# IMAGE FROM NEATO 
 		#useful link for image types http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
 		cv_Shoeimage = self.bridge.imgmsg_to_cv2(msg, "bgr8")
 		#Shoeimage = np.asanyarray(cv_Shoeimage)
 		self.new_shoeimg = cv_Shoeimage
+		if self.new_shoeimg.shape[0] == 480:
+			self.flag = True
+		else:
+			self.flag = False
 		#cv2.imshow("ShoeImage", cv_Shoeimage)
 		#print "image"
 
@@ -261,6 +264,7 @@ if __name__ == '__main__':
 	try:
 		rospy.init_node('capture', anonymous=True)
 		n = ShoeStalker('SIFT')
+		n.flag = False
 		# rospy.init_node('ShoeStalker', anonymous = True) # don't need?
 		#pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
 		#pub.publish('a')
@@ -276,7 +280,7 @@ if __name__ == '__main__':
 		cv2.setMouseCallback("ShoeImage", n.mouse_event) #listen for mouse clicks on window
 
 		while not(rospy.is_shutdown()):
-			if n.new_shoeimg == None:
+			if n.flag == False:
 				print 'nope'
 			else:
 				# n.get_new_keypoints() # had to comment out to get have code run for image capture 11/1
