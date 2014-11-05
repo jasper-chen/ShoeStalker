@@ -95,7 +95,7 @@ class ShoeStalker:
 		# else:
 		#print self.new_img
 		new_img_bw = cv2.cvtColor(self.new_img,cv2.COLOR_BGR2GRAY)
-		print 'maybe?'#new_img_bw.shape
+		#print 'maybe?'#new_img_bw.shape
 		#detect keypoints
 		keyp = self.detector.detect(new_img_bw)
 		#compare keypoints
@@ -111,19 +111,19 @@ class ShoeStalker:
 		self.new_keypoints = keyp
 		self.new_descriptors = describe
 		#print keyp
-		print 'first keypoint point: %s' %keyp[0].pt
+		#print 'first keypoint point: %s' %keyp[0].pt
 
 		#print 'keypoints, describe'
 		#print keyp,describe
 
-	def detecting(self, im):
-		print 'detect'
+	def detecting(self,im):
+		#print 'detecting'
 
 		#Pauls Code - went through it and changed it to fit ours. will probably need further alterations
 		img_bw = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
 		training_keypoints = self.detector.detect(img_bw)
 		#print training_keypoints
-		print "new_descriptors"
+		#print "new_descriptors"
 		#print self.new_descriptors
 
 		desc, training_descriptors = self.extractor.compute(img_bw,training_keypoints)
@@ -137,12 +137,12 @@ class ShoeStalker:
 			#makes sure distance to closest match is sufficiently better than to 2nd closest
 			if (m.distance < self.ratio_threshold*n.distance and
 				training_keypoints[m.trainIdx].response >self.corner_threshold):
-				print 'finding matches'
+				#print 'finding matches'
 				good_matches.append((m.queryIdx, m.trainIdx))
 
-		print 'good matches type: %s' %type(good_matches)
+		#print 'good matches type: %s' %type(good_matches)
 
-		print 'good matches: %s' %good_matches
+		#print 'good matches: %s' %good_matches
 
 		self.matching_new_pts = np.zeros((len(good_matches),2))
 		self.matching_training_pts = np.zeros((len(good_matches),2))
@@ -154,8 +154,8 @@ class ShoeStalker:
 			self.matching_training_pts = training_keypoints[match[1]].pt
 			track_im[training_keypoints[match[1]].pt[1], training_keypoints[match[1]].pt[0]] = 1.0
 
-		print 'matching_keypoint type: %s' %type(self.matching_new_pts)
-		print 'matching_keypoints: %s' %self.matching_new_pts
+		#print 'matching_keypoint type: %s' %type(self.matching_new_pts)
+		#print 'matching_keypoints: %s' %self.matching_new_pts
 
 		
 		track_im_visualize = track_im.copy()
@@ -231,16 +231,6 @@ class ShoeStalker:
 	#	cv2.imshow("ShoeImage",frame)
 	# 	cv2.setMouseCallback("ShoeImage", mouse_event)
 
-	def preloaded_reference_image(self):
-		"""displays and assigns a preloaded reference image to save time testing code"""
-		print 'preloaded reference'
-		frame = self.new_img
-		cv2.namedWindow('preloaded reference')
-		cv2.imshow("preloaded reference",frame)
-		cv2.waitKey(0)
-		cv2.destroyAllWindows()
-
-
 	# def publisher(self):
 	# 	rospy.init_node('ShoeStalker', anonymous = True )
 	# 	pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
@@ -314,6 +304,8 @@ if __name__ == '__main__':
 												  n.new_region[0]:n.new_region[2],:])
 						# plot the matching points and correspondences
 						for i in range(n.matching_new_pts.shape[0]):
+							#print 'matching x: %s' %n.matching_training_pts[i,0]
+							#print 'matching y: %s' %n.matching_training_pts[i,1]							
 							cv2.circle(combined_img,(int(n.matching_training_pts[i,0]),int(n.matching_training_pts[i,1])),2,(255,0,0),2)
 							#print n.matching_training_pts[i,0]
 							#print n.matching_training_pts[i,1]
@@ -321,11 +313,11 @@ if __name__ == '__main__':
 												  (int(n.matching_new_pts[i,0]+frame.shape[1]),int(n.matching_new_pts[i,1])),
 												  (0,255,0))
 
-							print 'hello?'
-						print 'new_keypoints'
+							#print 'hello?'
+						#print 'new_keypoints'
 						#print n.new_keypoints
 						for pt in n.new_keypoints:
-							print 'hello'
+							#print 'hello'
 							cv2.circle(combined_img,(int(pt.pt[0]+frame.shape[1]),int(pt.pt[1])),2,(255,0,0),1)
 						cv2.rectangle(combined_img,(n.last_detection[0],n.last_detection[1]),(n.last_detection[2],n.last_detection[3]),(0,0,255),2)
 
