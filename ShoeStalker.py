@@ -57,10 +57,6 @@ class ShoeStalker:
 		except AttributeError:
 			print "ERROR!"
 			pass	
-		
-		self.new_img = None
-		self.new_region = None
-		self.last_detection = None
 
 	def scan_received(self,msg):
 		pass
