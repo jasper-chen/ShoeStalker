@@ -128,7 +128,7 @@ class ShoeStalker:
 		for m,n in matches: 
 			#makes sure distance to closest match is sufficiently better than to 2nd closest
 			if (m.distance < self.ratio_threshold*n.distance and
-				training_keypoints[m.trainIdx].response >self.corner_threshold):
+				training_keypoints[m.trainIdx].response > self.corner_threshold):
 				print 'finding matches'
 				good_matches.append((m.queryIdx, m.trainIdx))
 
@@ -157,7 +157,7 @@ class ShoeStalker:
 
 		#setup criterial for termination, either 10 iteritation or move at least 1 pt
 		#done to plot intermediate results of mean shift
-		for max_iter in range(1,10):
+		for max_iter in range(1,10): 
 			term_crit = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, max_iter, 1 )
 			(ret, intermediate_region) = cv2.meanShift(track_im,track_region,term_crit)
 			cv2.rectangle(track_im_visualize,(intermediate_region[0],intermediate_region[1]),(intermediate_region[0]+intermediate_region[2],intermediate_region[1]+intermediate_region[3]),max_iter/10.0,2)
