@@ -56,10 +56,6 @@ class ShoeStalker:
 		except AttributeError:
 			print "ERROR!"
 			pass	
-		
-		self.new_img = None
-		self.new_region = None
-		self.last_detection = None
 
 	def scan_received(self,msg):
 		pass
@@ -136,8 +132,13 @@ class ShoeStalker:
 		for m,n in matches: 
 			#makes sure distance to closest match is sufficiently better than to 2nd closest
 			if (m.distance < self.ratio_threshold*n.distance and
+<<<<<<< HEAD
 				training_keypoints[m.trainIdx].response >self.corner_threshold):
 				#print 'finding matches'
+=======
+				training_keypoints[m.trainIdx].response > self.corner_threshold):
+				print 'finding matches'
+>>>>>>> f85242e488702b3a6f3c616b55bc71333a5a1f2e
 				good_matches.append((m.queryIdx, m.trainIdx))
 
 		#print 'good matches type: %s' %type(good_matches)
@@ -165,7 +166,7 @@ class ShoeStalker:
 
 		#setup criterial for termination, either 10 iteritation or move at least 1 pt
 		#done to plot intermediate results of mean shift
-		for max_iter in range(1,10):
+		for max_iter in range(1,10): 
 			term_crit = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, max_iter, 1 )
 			(ret, intermediate_region) = cv2.meanShift(track_im,track_region,term_crit)
 			cv2.rectangle(track_im_visualize,(intermediate_region[0],intermediate_region[1]),(intermediate_region[0]+intermediate_region[2],intermediate_region[1]+intermediate_region[3]),max_iter/10.0,2)
@@ -238,6 +239,7 @@ class ShoeStalker:
 	# 	pub.publish('a')
 	# 	rospy.spin()
 
+	# asdhaosdhasoiduhasdoiasdhaosidhaoisdh
 	def mouse_event(self,event,x,y,flag,im):
 		if event == cv2.EVENT_FLAG_LBUTTON:
 			if self.state == self.SELECTING_NEW_IMG:
