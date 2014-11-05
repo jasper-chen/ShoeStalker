@@ -42,6 +42,7 @@ class ShoeStalker:
 		self.new_descriptors = None
 		rospy.Subscriber("scan", LaserScan, self.scan_received, queue_size=1)
 		self.new_keypoints = None
+		self.magnitude=None
 
 		self.corner_threshold = 0.0
 		self.ratio_threshold = 1.0
@@ -106,7 +107,7 @@ class ShoeStalker:
 		print 'first keypoint point: %s' %keyp[0].pt
 
 		#print 'keypoints, describe'
-		#print keyp,describe
+		#print keyp,describex
 
 	def detecting(self,im):
 		print 'detecting'
@@ -143,7 +144,7 @@ class ShoeStalker:
 		for idx in range(len(good_matches)):
 			match = good_matches[idx]
 			self.matching_new_pts[idx,:] = self.new_keypoints[match[0]].pt
-			self.matching_training_pts = training_keypoints[match[1]].pt
+			self.matching_training_pts[idx,:] = training_keypoints[match[1]].pt
 			track_im[training_keypoints[match[1]].pt[1], training_keypoints[match[1]].pt[0]] = 1.0
 
 		print 'matching_keypoint type: %s' %type(self.matching_new_pts)
@@ -186,7 +187,6 @@ class ShoeStalker:
 					data_x = self.odom_pose[0] + msg.ranges[degree]*math.cos(degree*math.pi/180.0 + self.odom_pose[2])
 					data_y = self.odom_pose[1] + msg.ranges[degree]*math.sin(degree*math.pi/180+self.odom_pose[2])
 					self.magnitude[degree] = math.sqrt(data_x**2 + data_y**2) 
-				if magnitude[degree] < 1: 
 					pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
 					
 
@@ -201,7 +201,7 @@ class ShoeStalker:
 			linear = .5
 			#angular = xpos * something depending on what the units of xpos are
 			pub.publish(Twist(linear=Vector3(x=0),angular=Vector3(z=0)))
-		elif self.magnitude[degree]:
+		elif self.magnitude > 1:
 			self.approach_shoe()
 		else:
 			self.lostshoe()
@@ -306,9 +306,11 @@ if __name__ == '__main__':
 												  n.new_region[0]:n.new_region[2],:])
 						# plot the matching points and correspondences
 						for i in range(n.matching_new_pts.shape[0]):
+							print 'please work'
+							print 'matching x: %s' %n.matching_training_pts[i,0]
+							print 'matching y: %s' %n.matching_training_pts[i,1]							
 							cv2.circle(combined_img,(int(n.matching_training_pts[i,0]),int(n.matching_training_pts[i,1])),2,(255,0,0),2)
-							#print n.matching_training_pts[i,0]
-							#print n.matching_training_pts[i,1]
+
 							cv2.line(combined_img,(int(n.matching_training_pts[i,0]), int(n.matching_training_pts[i,1])),
 												  (int(n.matching_new_pts[i,0]+frame.shape[1]),int(n.matching_new_pts[i,1])),
 												  (0,255,0))
