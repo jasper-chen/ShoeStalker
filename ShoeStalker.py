@@ -236,7 +236,6 @@ class ShoeStalker:
 	# 	pub.publish('a')
 	# 	rospy.spin()
 
-	# asdhaosdhasoiduhasdoiasdhaosidhaoisdh
 	def mouse_event(self,event,x,y,flag,im):
 		if event == cv2.EVENT_FLAG_LBUTTON:
 			if self.state == self.SELECTING_NEW_IMG:
