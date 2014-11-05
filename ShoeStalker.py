@@ -70,9 +70,9 @@ class ShoeStalker:
 		#Shoeimage = np.asanyarray(cv_Shoeimage)
 		self.new_shoeimg = cv_Shoeimage
 		if self.new_shoeimg.shape[0] == 480:
-			self.flag = True
+			self.image_stream = True
 		else:
-			self.flag = False
+			self.image_stream = False
 		#cv2.imshow("ShoeImage", cv_Shoeimage)
 		#print "image"
 
@@ -264,7 +264,9 @@ if __name__ == '__main__':
 	try:
 		rospy.init_node('capture', anonymous=True)
 		n = ShoeStalker('SIFT')
-		n.flag = False
+		n.image_stream = False #flag for 
+
+
 		# rospy.init_node('ShoeStalker', anonymous = True) # don't need?
 		#pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
 		#pub.publish('a')
@@ -280,7 +282,7 @@ if __name__ == '__main__':
 		cv2.setMouseCallback("ShoeImage", n.mouse_event) #listen for mouse clicks on window
 
 		while not(rospy.is_shutdown()):
-			if n.flag == False:
+			if n.image_stream == False:
 				print 'nope'
 			else:
 				# n.get_new_keypoints() # had to comment out to get have code run for image capture 11/1
@@ -298,7 +300,6 @@ if __name__ == '__main__':
 						combined_img[0:(n.new_region[3]-n.new_region[1]),frame.shape[1]:,:] = (
 								n.new_img[n.new_region[1]:n.new_region[3],
 												  n.new_region[0]:n.new_region[2],:])
-						cv2.imshow("a",combined_img)
 						# plot the matching points and correspondences
 						for i in range(n.matching_new_pts.shape[0]):
 							#print 'please work'
