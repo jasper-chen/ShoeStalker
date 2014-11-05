@@ -286,9 +286,9 @@ if __name__ == '__main__':
 		cv2.namedWindow("ShoeImage")
 		cv2.setMouseCallback("ShoeImage", n.mouse_event) #listen for mouse clicks on window
 
-		while not(rospy.is_shutdown()):
+		while True:
 			if n.new_img == None:
-				print 'nope'
+				# print 'nope'
 			else:
 				# n.get_new_keypoints() # had to comment out to get have code run for image capture 11/1
 				# ret, frame = cap.read()
@@ -313,9 +313,9 @@ if __name__ == '__main__':
 												  (int(n.matching_new_pts[i,0]+frame.shape[1]),int(n.matching_new_pts[i,1])),
 												  (0,255,0))
 
-							print 'hello?'
-						print 'new_keypoints'
-						#print n.new_keypoints
+							# print 'hello?'
+						# print 'new_keypoints'
+						print n.new_keypoints
 						for pt in n.new_keypoints:
 							print 'hello'
 							cv2.circle(combined_img,(int(pt.pt[0]+frame.shape[1]),int(pt.pt[1])),2,(255,0,0),1)
