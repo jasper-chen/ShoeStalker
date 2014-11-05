@@ -14,7 +14,8 @@ October 28, A - added capability of reading image from Neato stream. added mouse
 
 November 1, A - made the code really able to read images! 
 
-November 4, J - found the missing thing! 
+November 4, J - found the missing thing!
+			J - the top right image is now static and to size!
 
 """
 import rospy
