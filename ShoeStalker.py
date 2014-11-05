@@ -87,14 +87,6 @@ class ShoeStalker:
 
 	def get_new_keypoints(self):
 		# #makes new image black and white
-		# if self.new_img == None:
-		# 	return
-		# elif self.new_region == None:
-		# 	#added for testing. issues with having no new region
-		# 	print 'help... help...'
-		# 	return
-		# else:
-		#print self.new_img
 		new_img_bw = cv2.cvtColor(self.new_img,cv2.COLOR_BGR2GRAY)
 		print 'maybe?'#new_img_bw.shape
 		#detect keypoints
@@ -117,8 +109,8 @@ class ShoeStalker:
 		#print 'keypoints, describe'
 		#print keyp,describex
 
-	def detecting(self, im):
-		print 'detect'
+	def detecting(self,im):
+		print 'detecting'
 
 		#Pauls Code - went through it and changed it to fit ours. will probably need further alterations
 		img_bw = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
@@ -298,8 +290,8 @@ if __name__ == '__main__':
 			if n.new_img == None:
 				print 'nope'
 			else:
-				#n.get_new_keypoints() # had to comment out to get have code run for image capture 11/1
-				#ret, frame = cap.read()
+				# n.get_new_keypoints() # had to comment out to get have code run for image capture 11/1
+				# ret, frame = cap.read()
 				frame = np.array(cv2.resize(n.new_img,(n.new_img.shape[1]/2,n.new_img.shape[0]/2)))
 
 				if n.state == n.SELECTING_NEW_IMG:
@@ -338,8 +330,4 @@ if __name__ == '__main__':
 					cv2.imshow("ShoeImage",n.new_img_visualize)
 
 			cv2.waitKey(1)
-			
-			#function(pub)
-			#capture frames
-
 	except rospy.ROSInterruptException: pass
