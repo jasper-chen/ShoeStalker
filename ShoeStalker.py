@@ -39,6 +39,7 @@ class ShoeStalker:
 		rospy.Subscriber("scan", LaserScan, self.scan_received, queue_size=1)
 		self.new_keypoints = None
 		self.magnitude=None
+		self.xpos = None
 
 		self.corner_threshold = 0.0
 		self.ratio_threshold = 1.0
@@ -185,14 +186,16 @@ class ShoeStalker:
 					pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
 					
 
-	def stalk(self,msg): 
+	def stalk(self): 
 		print 'stalk'
 		#move robot so shoe is in center of image (or will it already be like this?)
 		#move towards the shoes
 
 		#xpos,distance = self.detect(self.new_image) 
 
-		if xpos > 0:
+		if self.xpos == None:
+			print "no shoe"
+		elif self.xpos > 0:
 			linear = .5
 			#angular = xpos * something depending on what the units of xpos are
 			pub.publish(Twist(linear=Vector3(x=0),angular=Vector3(z=0)))
@@ -252,7 +255,25 @@ class ShoeStalker:
 
 	def set_ratio_threshold_callback(self, ratio):
 		""" Sets the ratio of the nearest to the second nearest neighbor to consider the match a good one """
-		self.set_ratio_threshold(ratio/100.0)		
+		self.set_ratio_threshold(ratio/100.0)
+
+	def teleop(self):
+		pub=rospy.Publisher('cmd_vel',Twist,queue_size=1)
+		turn_vel = .5
+		linear_vel = .5
+		r=rospy.Rate(10)
+
+		key=raw_input('drive!')
+		if key=='w':
+		    pub.publish(Twist(linear=Vector3(x=linear_vel)))
+		elif key=='d':
+		    pub.publish(Twist(angular=Vector3(z=-turn_vel)))
+		elif key=='s':
+		    pub.publish(Twist(linear=Vector3(x=-linear_vel)))
+		elif key=='a':
+		    pub.publish(Twist(angular=Vector3(z=turn_vel)))
+		else:
+			pub.publish(Twist())
 
 if __name__ == '__main__':
 	try:
@@ -314,8 +335,11 @@ if __name__ == '__main__':
 						cv2.rectangle(combined_img,(n.last_detection[0],n.last_detection[1]),(n.last_detection[2],n.last_detection[3]),(0,0,255),2)
 
 						cv2.imshow("ShoeImage",combined_img)
+
+						n.stalk()
 					else:
 						cv2.imshow("ShoeImage",frame)
+						n.teleop()
 				else:
 					cv2.imshow("ShoeImage",n.new_img_visualize)
 			cv2.waitKey(1)
