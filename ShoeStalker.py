@@ -63,6 +63,7 @@ class ShoeStalker:
 
 	def scan_received(self,msg):
 		pass
+	
 
 	def capture(self,msg):
 		# IMAGE FROM NEATO 
