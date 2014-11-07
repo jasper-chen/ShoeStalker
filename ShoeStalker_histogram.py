@@ -19,6 +19,7 @@ November 4, J - found the missing thing!
 
 """
 import rospy
+import cv
 import cv2
 import numpy as np
 import math 
@@ -64,10 +65,19 @@ class ShoeStalker:
 	def scan_received(self,msg):
 		pass
 
+	def histcompare(self,im1,im2):
+		hist1 = cv2.calcHist([im1],[0],mask=None,histSize=[256],ranges=[0,255])
+		hist2 = cv2.calcHist([im2],[0],mask=None,histSize=[256],ranges=[0,255])
+		cv2.normalize(hist1,hist1,0,255,cv2.NORM_MINMAX)
+		cv2.normalize(hist2,hist2,0,255,cv2.NORM_MINMAX)
+		print cv2.compareHist(hist1,hist2,cv.CV_COMP_CORREL)
+		return cv2.compareHist(hist1,hist2,cv.CV_COMP_CORREL)
+
+
+
 	def track(self,im):
 		im_hsv = cv2.cvtColor(im,cv2.COLOR_BGR2HSV)
 		track_im = cv2.calcBackProject([im_hsv],[0],self.new_hist,[0,255],1)
-
 		track_im_visualize = track_im.copy()
 		# convert to (x,y,w,h)
 		track_roi = (self.last_detection[0],self.last_detection[1],self.last_detection[2]-self.last_detection[0],self.last_detection[3]-self.last_detection[1])
@@ -301,7 +311,7 @@ class ShoeStalker:
 
 
 	def is_in_bounding_box(self, x,y,w,h,kp):
-		print 'kp: %s' %kp
+		#print 'kp: %s' %kp
 		if kp[0] > x and kp[0] < w and kp[1] > y and kp[1] < h:
 			#print 'x: %s, y: %s, w: %s, h: %s, kp.pt[0]: %s, kp.pt[1]: %s' %(x,y,w,h,kp.pt[0],kp.pt[1])
 			#print 'True'
@@ -309,9 +319,6 @@ class ShoeStalker:
 		else:
 			#print 'False'
 			return False
-
-
-
 
 if __name__ == '__main__':
 	try:
@@ -353,6 +360,16 @@ if __name__ == '__main__':
 						combined_img[0:(n.new_region[3]-n.new_region[1]),frame.shape[1]:,:] = (
 								n.new_img[n.new_region[1]:n.new_region[3],
 												  n.new_region[0]:n.new_region[2],:])
+
+						first_img = n.new_img[n.new_region[1]:n.new_region[3],
+												  n.new_region[0]:n.new_region[2],:]
+
+
+						crop_img = n.new_img[n.last_detection[1]:n.last_detection[3],n.last_detection[0]:n.last_detection[2],:]
+
+						n.histcompare(first_img,crop_img)
+
+						#cv2.compareHist(h1,h2,method=CV_COMP_CORREL)
 						# plot the matching points and correspondences
 						for i in range(n.matching_new_pts.shape[0]):
 							#print 'please work'
@@ -371,11 +388,11 @@ if __name__ == '__main__':
 							#print 'hello'
 							cv2.circle(combined_img,(int(pt.pt[0]+frame.shape[1]),int(pt.pt[1])),2,(255,0,0),1)
 						cv2.rectangle(combined_img,(n.last_detection[0],n.last_detection[1]),(n.last_detection[2],n.last_detection[3]),(0,0,255),2)
-						print 'n.nmatching_new_pts: %s' %n.matching_training_pts
+						#print 'n.nmatching_new_pts: %s' %n.matching_training_pts
 						#top-left corner: x1, y1 bottom-right corner: x2, y2
-						print 'last detection 0: %s, last detection 1: %s, last detection 2: %s, last detection 3: %s' %(n.last_detection[0],n.last_detection[1],n.last_detection[2],n.last_detection[3])
+						#print 'last detection 0: %s, last detection 1: %s, last detection 2: %s, last detection 3: %s' %(n.last_detection[0],n.last_detection[1],n.last_detection[2],n.last_detection[3])
 						kp_in_box = filter(lambda x: n.is_in_bounding_box(n.last_detection[0],n.last_detection[1],n.last_detection[2],n.last_detection[3],x),n.matching_training_pts.tolist())
-						print len(kp_in_box)
+						#print len(kp_in_box)
 						cv2.imshow("ShoeImage",combined_img)
 					else:
 						cv2.imshow("ShoeImage",frame)
