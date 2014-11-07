@@ -45,8 +45,10 @@ class ShoeStalker:
 		self.last_detection = None
 		self.new_descriptors = None
 		rospy.Subscriber("scan", LaserScan, self.scan_received, queue_size=1)
+		self.pub=rospy.Publisher('cmd_vel',Twist,queue_size=1)
 		self.new_keypoints = None
 		self.magnitude=None
+		self.xpos = None
 
 		self.corner_threshold = 0.0
 		self.ratio_threshold = 1.0
@@ -230,21 +232,39 @@ class ShoeStalker:
 					pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
 					
 
-	def stalk(self,msg): 
+	def stalk(self): 
 		print 'stalk'
 		#move robot so shoe is in center of image (or will it already be like this?)
 		#move towards the shoes
 
 		#xpos,distance = self.detect(self.new_image) 
-
-		if xpos > 0:
-			linear = .5
-			#angular = xpos * something depending on what the units of xpos are
-			pub.publish(Twist(linear=Vector3(x=0),angular=Vector3(z=0)))
+		self.xpos = (((self.last_detection[2]- self.last_detection[0])/2)+self.last_detection[0])
+		#print 'xpos'
+		#print self.xpos 
+		if self.xpos == None:
+			print "no shoe"
+			linear = 0
+			angular = 0
+		elif self.xpos > 155:
+			linear = .05
+			angular = self.xpos * -.002
+		elif self.xpos < 145:
+			linear = .05
+			angular =(140-self.xpos) * .002
+		elif self.xpos <= 155 and self.xpos >= 145:
+			linear = .1
+			angular = 0
 		elif self.magnitude > 1:
-			self.approach_shoe()
+			#self.approach_shoe()
+			linear = 0
+			angular =0
 		else:
-			self.lostshoe()
+			#self.lostshoe()
+			linear = 0
+			angular =0
+		print linear, angular
+
+		self.pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
 
 	def lostshoe(self):
 		"""refinds a lost shoe, turn towards location of last shoe. currently just turning"""
@@ -394,6 +414,8 @@ if __name__ == '__main__':
 						kp_in_box = filter(lambda x: n.is_in_bounding_box(n.last_detection[0],n.last_detection[1],n.last_detection[2],n.last_detection[3],x),n.matching_training_pts.tolist())
 						#print len(kp_in_box)
 						cv2.imshow("ShoeImage",combined_img)
+
+						n.stalk()
 					else:
 						cv2.imshow("ShoeImage",frame)
 				else:
