@@ -150,7 +150,7 @@ class ShoeStalker:
 		
 		track_im_visualize = track_im.copy()
 
-		#converting to (x,y,z,h)\
+		#converting to (x,y,width,height)
 		track_region = (self.last_detection[0],self.last_detection[1],self.last_detection[2]-self.last_detection[0],self.last_detection[3]-self.last_detection[1])
 
 		#setup criterial for termination, either 10 iteritation or move at least 1 pt
