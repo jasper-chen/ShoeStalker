@@ -114,70 +114,24 @@ class ShoeStalker:
 	def detecting(self,im):
 		#print 'detecting'
 
-		#Pauls Code - went through it and changed it to fit ours. will probably need further alterations
-		img_bw = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
-		training_keypoints = self.detector.detect(img_bw)
-		#print training_keypoints
-		#print "new_descriptors"
-		#print self.new_descriptors
+		detect_im = cv2.calcBackProject([im_hsv],[0],self.new_hist,[0,255],1)
 
-		desc, training_descriptors = self.extractor.compute(img_bw,training_keypoints)
-		#finds the k best matches for each descriptor from a query set. (http://docs.opencv.org/modules/features2d/doc/common_interfaces_of_descriptor_matchers.html)
-		matches = self.matcher.knnMatch(self.new_descriptors, training_descriptors, k=2)
-		#print matches
-		#print dir(matches[0][0])
-		#print matches[0][0].imgIdx
-		good_matches = []
-		for m,n in matches: 
-			#makes sure distance to closest match is sufficiently better than to 2nd closest
-			if (m.distance < self.ratio_threshold*n.distance and
-				training_keypoints[m.trainIdx].response > self.corner_threshold):
-				#print 'finding matches'
-				good_matches.append((m.queryIdx, m.trainIdx))
+		detect_im_visualize = detect_im.copy()
+		# convert to (x,y,w,h)
+		track_roi = (self.last_detection[0],self.last_detection[1],self.last_detection[2]-self.last_detection[0],self.last_detection[3]-self.last_detection[1])
 
-		#print 'good matches type: %s' %type(good_matches)
-
-		#print 'good matches: %s' %good_matches
-
-		self.matching_new_pts = np.zeros((len(good_matches),2))
-		self.matching_training_pts = np.zeros((len(good_matches),2))
-
-		track_im = np.zeros(img_bw.shape)
-		for idx in range(len(good_matches)):
-			match = good_matches[idx]
-			self.matching_new_pts[idx,:] = self.new_keypoints[match[0]].pt
-			self.matching_training_pts[idx,:] = training_keypoints[match[1]].pt
-			track_im[training_keypoints[match[1]].pt[1], training_keypoints[match[1]].pt[0]] = 1.0
-
-		#print 'matching_keypoint type: %s' %type(self.matching_new_pts)
-		#print 'matching_keypoints: %s' %self.matching_new_pts
-
-		
-		track_im_visualize = track_im.copy()
-
-		#converting to (x,y,z,h)\
-		track_region = (self.last_detection[0],self.last_detection[1],self.last_detection[2]-self.last_detection[0],self.last_detection[3]-self.last_detection[1])
-
-		#setup criterial for termination, either 10 iteritation or move at least 1 pt
-		#done to plot intermediate results of mean shift
-		for max_iter in range(1,10): 
+		# Setup the termination criteria, either 10 iteration or move by atleast 1 pt
+		# this is done to plot intermediate results of mean shift
+		for max_iter in range(1,10):
 			term_crit = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, max_iter, 1 )
-			(ret, intermediate_region) = cv2.meanShift(track_im,track_region,term_crit)
-			cv2.rectangle(track_im_visualize,(intermediate_region[0],intermediate_region[1]),(intermediate_region[0]+intermediate_region[2],intermediate_region[1]+intermediate_region[3]),max_iter/10.0,2)
-		
+			(ret, intermediate_region) = cv2.meanShift(detect_im,detect_region,term_crit)
+			cv2.rectangle(detect_im_visualize,(intermediate_region[0],intermediate_region[1]),(intermediate_region[0]+intermediate_region[2],intermediate_region[1]+intermediate_region[3]),max_iter/10.0,2)
+
 		self.last_detection = [intermediate_region[0],intermediate_region[1],intermediate_region[0]+intermediate_region[2],intermediate_region[1]+intermediate_region[3]]
+		cv2.imshow("detect_win",detect_im_visualize)
 
-		cv2.imshow("track_win", track_im_visualize)
 
-		#compare image of the shoe to shoe database (color histogram/SIFT technique) (this may be very time-consuming)
-		#pick shoe by image of shoe with the most keypoints
-		#return location of shoes (I think it might be easier to use one location of a shoe)
-
-		#xpos = 0
-		#distance = 0
-		#print 'xpos,distance'
-		#return xpos,distance
-
+		
 	def approach_shoe(self,msg):
 		# making the robot stop if it gets within a meter of the shoe (the thing directly in front of it)
 		liner = 0
@@ -191,7 +145,6 @@ class ShoeStalker:
 					self.magnitude[degree] = math.sqrt(data_x**2 + data_y**2) 
 					pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
 					
-
 	def stalk(self,msg): 
 		print 'stalk'
 		#move robot so shoe is in center of image (or will it already be like this?)
