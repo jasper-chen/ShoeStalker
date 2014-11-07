@@ -281,8 +281,6 @@ if __name__ == '__main__':
 		rospy.init_node('capture', anonymous=True)
 		n = ShoeStalker('SIFT')
 		n.image_stream = False #flag for 
-		n.stalk()
-
 
 		# rospy.init_node('ShoeStalker', anonymous = True) # don't need?
 		#pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
