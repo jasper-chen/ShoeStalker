@@ -273,9 +273,6 @@ class ShoeStalker:
 			#print 'False'
 			return False
 
-
-
-
 if __name__ == '__main__':
 	try:
 		rospy.init_node('capture', anonymous=True)

@@ -204,6 +204,16 @@ class ShoeStalker:
 				cv2.circle(self.new_img_visualize,(x,y),5,(255,0,0),5)
 				self.state = self.SELECTING_NEW_IMG
 
+	def set_corner_threshold_callback(self, thresh):
+		""" Sets the threshold to consider an interest point a corner.  The higher the value
+			the more the point must look like a corner to be considered """
+		self.set_corner_threshold(thresh/1000.0)
+
+	def set_ratio_threshold_callback(self, ratio):
+		""" Sets the ratio of the nearest to the second nearest neighbor to consider the match a good one """
+		self.set_ratio_threshold(ratio/100.0)
+
+
 	def is_in_bounding_box(self, x,y,w,h,kp):
 		print 'kp: %s' %kp
 		if kp[0] > x and kp[0] < w and kp[1] > y and kp[1] < h:
