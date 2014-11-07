@@ -37,6 +37,7 @@ class ShoeStalker:
 		self.last_detection = None
 		self.new_descriptors = None
 		rospy.Subscriber("scan", LaserScan, self.scan_received, queue_size=1)
+		self.pub=rospy.Publisher('cmd_vel',Twist,queue_size=1)
 		self.new_keypoints = None
 		self.magnitude=None
 		self.xpos = None
@@ -185,7 +186,7 @@ class ShoeStalker:
 					data_x = self.odom_pose[0] + msg.ranges[degree]*math.cos(degree*math.pi/180.0 + self.odom_pose[2])
 					data_y = self.odom_pose[1] + msg.ranges[degree]*math.sin(degree*math.pi/180+self.odom_pose[2])
 					self.magnitude[degree] = math.sqrt(data_x**2 + data_y**2) 
-					pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
+					self.pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
 					
 
 	def stalk(self): 
@@ -194,17 +195,33 @@ class ShoeStalker:
 		#move towards the shoes
 
 		#xpos,distance = self.detect(self.new_image) 
-
+		self.xpos = (((self.last_detection[2]- self.last_detection[0])/2)+self.last_detection[0])
+		#print 'xpos'
+		#print self.xpos 
 		if self.xpos == None:
 			print "no shoe"
-		elif self.xpos > 0:
-			linear = .5
-			#angular = xpos * something depending on what the units of xpos are
-			pub.publish(Twist(linear=Vector3(x=0),angular=Vector3(z=0)))
+			linear = 0
+			angular = 0
+		elif self.xpos > 155:
+			linear = .05
+			angular = self.xpos * -.002
+		elif self.xpos < 145:
+			linear = .05
+			angular =(140-self.xpos) * .002
+		elif self.xpos <= 155 and self.xpos >= 145:
+			linear = .1
+			angular = 0
 		elif self.magnitude > 1:
-			self.approach_shoe()
+			#self.approach_shoe()
+			linear = 0
+			angular =0
 		else:
-			self.lostshoe()
+			#self.lostshoe()
+			linear = 0
+			angular =0
+		print linear, angular
+
+		self.pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
 
 	def lostshoe(self):
 		"""refinds a lost shoe, turn towards location of last shoe. currently just turning"""
@@ -244,7 +261,7 @@ class ShoeStalker:
 			else:
 				#print 'get new keypoints'
 				self.new_region[2:] = [x,y]
-				print 'new region %s' %self.new_region
+				# print 'new region %s' %self.new_region
 				self.last_detection = self.new_region
 				cv2.circle(self.new_img_visualize,(x,y),5,(255,0,0),5)
 				self.state = self.SELECTING_NEW_IMG
@@ -259,26 +276,26 @@ class ShoeStalker:
 		""" Sets the ratio of the nearest to the second nearest neighbor to consider the match a good one """
 		self.set_ratio_threshold(ratio/100.0)
 
-	def teleop(self):
-		pub=rospy.Publisher('cmd_vel',Twist,queue_size=1)
-		turn_vel = .5
-		linear_vel = .5
-		r=rospy.Rate(10)
+	# def teleop(self):
+	# 	pub=rospy.Publisher('cmd_vel',Twist,queue_size=1)
+	# 	turn_vel = .5
+	# 	linear_vel = .5
+	# 	r=rospy.Rate(10)
 
-		key=raw_input('drive!')
-		if key=='w':
-		    pub.publish(Twist(linear=Vector3(x=linear_vel)))
-		elif key=='d':
-		    pub.publish(Twist(angular=Vector3(z=-turn_vel)))
-		elif key=='s':
-		    pub.publish(Twist(linear=Vector3(x=-linear_vel)))
-		elif key=='a':
-		    pub.publish(Twist(angular=Vector3(z=turn_vel)))
-		else:
-			pub.publish(Twist())
+	# 	key=raw_input('drive!')
+	# 	if key=='w':
+	# 	    pub.publish(Twist(linear=Vector3(x=linear_vel)))
+	# 	elif key=='d':
+	# 	    pub.publish(Twist(angular=Vector3(z=-turn_vel)))
+	# 	elif key=='s':
+	# 	    pub.publish(Twist(linear=Vector3(x=-linear_vel)))
+	# 	elif key=='a':
+	# 	    pub.publish(Twist(angular=Vector3(z=turn_vel)))
+	# 	else:
+	# 		pub.publish(Twist())
 
 	def is_in_bounding_box(self, x,y,w,h,kp):
-		print 'kp: %s' %kp
+		#print 'kp: %s' %kp
 		if kp[0] > x and kp[0] < w and kp[1] > y and kp[1] < h:
 			#print 'x: %s, y: %s, w: %s, h: %s, kp.pt[0]: %s, kp.pt[1]: %s' %(x,y,w,h,kp.pt[0],kp.pt[1])
 			#print 'True'
@@ -344,18 +361,18 @@ if __name__ == '__main__':
 							#print 'hello'
 							cv2.circle(combined_img,(int(pt.pt[0]+frame.shape[1]),int(pt.pt[1])),2,(255,0,0),1)
 						cv2.rectangle(combined_img,(n.last_detection[0],n.last_detection[1]),(n.last_detection[2],n.last_detection[3]),(0,0,255),2)
-						print 'n.nmatching_new_pts: %s' %n.matching_training_pts
+						#print 'n.nmatching_new_pts: %s' %n.matching_training_pts
 						#top-left corner: x1, y1 bottom-right corner: x2, y2
-						print 'last detection 0: %s, last detection 1: %s, last detection 2: %s, last detection 3: %s' %(n.last_detection[0],n.last_detection[1],n.last_detection[2],n.last_detection[3])
+						#print 'last detection 0: %s, last detection 1: %s, last detection 2: %s, last detection 3: %s' %(n.last_detection[0],n.last_detection[1],n.last_detection[2],n.last_detection[3])
 						kp_in_box = filter(lambda x: n.is_in_bounding_box(n.last_detection[0],n.last_detection[1],n.last_detection[2],n.last_detection[3],x),n.matching_training_pts.tolist())
-						print len(kp_in_box)
+						#print len(kp_in_box)
 						cv2.imshow("ShoeImage",combined_img)
 
 						n.stalk()
 					else:
 						cv2.imshow("ShoeImage",frame)
-						n.teleop()
+						# n.teleop()
 				else:
 					cv2.imshow("ShoeImage",n.new_img_visualize)
-			cv2.waitKey(1)
+			cv2.waitKey(100)
 	except rospy.ROSInterruptException: pass
