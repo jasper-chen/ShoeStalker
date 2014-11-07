@@ -180,6 +180,8 @@ class ShoeStalker:
 
 	def approach_shoe(self,msg):
 		# making the robot stop if it gets within a meter of the shoe (the thing directly in front of it)
+		print "approach_shoe"
+
 		liner = 0
 		angular = 0 
 		#this needs to be checked over when I am less tired! Probably should be put directly into the "stalk" function  
@@ -279,7 +281,6 @@ if __name__ == '__main__':
 		rospy.init_node('capture', anonymous=True)
 		n = ShoeStalker('SIFT')
 		n.image_stream = False #flag for 
-
 
 		# rospy.init_node('ShoeStalker', anonymous = True) # don't need?
 		#pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
