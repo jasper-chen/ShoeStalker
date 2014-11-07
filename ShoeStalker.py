@@ -259,7 +259,20 @@ class ShoeStalker:
 
 	def set_ratio_threshold_callback(self, ratio):
 		""" Sets the ratio of the nearest to the second nearest neighbor to consider the match a good one """
-		self.set_ratio_threshold(ratio/100.0)		
+		self.set_ratio_threshold(ratio/100.0)
+
+	def is_in_bounding_box(self, x,y,w,h,kp):
+		print 'kp: %s' %kp
+		if kp[0] > x and kp[0] < w and kp[1] > y and kp[1] < h:
+			#print 'x: %s, y: %s, w: %s, h: %s, kp.pt[0]: %s, kp.pt[1]: %s' %(x,y,w,h,kp.pt[0],kp.pt[1])
+			#print 'True'
+			return True
+		else:
+			#print 'False'
+			return False
+
+
+
 
 if __name__ == '__main__':
 	try:
@@ -307,7 +320,7 @@ if __name__ == '__main__':
 							#print 'matching x: %s' %n.matching_training_pts[i,0]
 							#print 'matching y: %s' %n.matching_training_pts[i,1]							
 							cv2.circle(combined_img,(int(n.matching_training_pts[i,0]),int(n.matching_training_pts[i,1])),2,(255,0,0),2)
-
+							#print 'size of training pts: %s' %len(n.matching_training_pts)
 							cv2.line(combined_img,(int(n.matching_training_pts[i,0]), int(n.matching_training_pts[i,1])),
 												  (int(n.matching_new_pts[i,0]+frame.shape[1]),int(n.matching_new_pts[i,1])),
 												  (0,255,0))
@@ -319,7 +332,11 @@ if __name__ == '__main__':
 							#print 'hello'
 							cv2.circle(combined_img,(int(pt.pt[0]+frame.shape[1]),int(pt.pt[1])),2,(255,0,0),1)
 						cv2.rectangle(combined_img,(n.last_detection[0],n.last_detection[1]),(n.last_detection[2],n.last_detection[3]),(0,0,255),2)
-
+						print 'n.nmatching_new_pts: %s' %n.matching_training_pts
+						#top-left corner: x1, y1 bottom-right corner: x2, y2
+						print 'last detection 0: %s, last detection 1: %s, last detection 2: %s, last detection 3: %s' %(n.last_detection[0],n.last_detection[1],n.last_detection[2],n.last_detection[3])
+						kp_in_box = filter(lambda x: n.is_in_bounding_box(n.last_detection[0],n.last_detection[1],n.last_detection[2],n.last_detection[3],x),n.matching_training_pts.tolist())
+						print len(kp_in_box)
 						cv2.imshow("ShoeImage",combined_img)
 					else:
 						cv2.imshow("ShoeImage",frame)
