@@ -19,6 +19,7 @@ November 4, J - found the missing thing!
 
 """
 import rospy
+import cv
 import cv2
 import numpy as np
 import math 
@@ -64,6 +65,33 @@ class ShoeStalker:
 	def scan_received(self,msg):
 		pass
 
+	def histcompare(self,im1,im2):
+		hist1 = cv2.calcHist([im1],[0],mask=None,histSize=[256],ranges=[0,255])
+		hist2 = cv2.calcHist([im2],[0],mask=None,histSize=[256],ranges=[0,255])
+		cv2.normalize(hist1,hist1,0,255,cv2.NORM_MINMAX)
+		cv2.normalize(hist2,hist2,0,255,cv2.NORM_MINMAX)
+		print cv2.compareHist(hist1,hist2,cv.CV_COMP_CORREL)
+		return cv2.compareHist(hist1,hist2,cv.CV_COMP_CORREL)
+
+
+
+	def track(self,im):
+		im_hsv = cv2.cvtColor(im,cv2.COLOR_BGR2HSV)
+		track_im = cv2.calcBackProject([im_hsv],[0],self.new_hist,[0,255],1)
+		track_im_visualize = track_im.copy()
+		# convert to (x,y,w,h)
+		track_roi = (self.last_detection[0],self.last_detection[1],self.last_detection[2]-self.last_detection[0],self.last_detection[3]-self.last_detection[1])
+
+		# Setup the termination criteria, either 10 iteration or move by atleast 1 pt
+		# this is done to plot intermediate results of mean shift
+		for max_iter in range(1,10):
+			term_crit = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, max_iter, 1 )
+			(ret, intermediate_roi) = cv2.meanShift(track_im,track_roi,term_crit)
+			cv2.rectangle(track_im_visualize,(intermediate_roi[0],intermediate_roi[1]),(intermediate_roi[0]+intermediate_roi[2],intermediate_roi[1]+intermediate_roi[3]),max_iter/10.0,2)
+
+		self.last_detection = [intermediate_roi[0],intermediate_roi[1],intermediate_roi[0]+intermediate_roi[2],intermediate_roi[1]+intermediate_roi[3]]
+		cv2.imshow("histogram",track_im_visualize)
+
 	def capture(self,msg):
 		# IMAGE FROM NEATO 
 		#useful link for image types http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
@@ -80,6 +108,14 @@ class ShoeStalker:
 		# # set up the ROI for tracking
 		# region = self.new_img[self.new_region[1]:self.new_region[3],self.new_region[0]:self.new_region[2],:]
 		# hsv_region =  cv2.cvtColor(region, cv2.COLOR_BGR2HSV)
+
+	def get_new_histogram(self):
+		# set up the ROI for tracking
+		region = self.new_img[self.new_region[1]:self.new_region[3],self.new_region[0]:self.new_region[2],:]
+		hsv_region =  cv2.cvtColor(region, cv2.COLOR_BGR2HSV)
+		# play with the number of histogram bins by changing histSize
+		self.new_hist = cv2.calcHist([hsv_region],[0],mask=None,histSize=[256],ranges=[0,255])
+		cv2.normalize(self.new_hist,self.new_hist,0,255,cv2.NORM_MINMAX)
 
 	def set_ratio_threshold(self,thresh):
 		self.ratio_threshold = thresh
@@ -114,26 +150,74 @@ class ShoeStalker:
 	def detecting(self,im):
 		#print 'detecting'
 
-		detect_im = cv2.calcBackProject([im_hsv],[0],self.new_hist,[0,255],1)
+		#Pauls Code - went through it and changed it to fit ours. will probably need further alterations
+		img_bw = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
+		training_keypoints = self.detector.detect(img_bw)
+		#print training_keypoints
+		#print "new_descriptors"
+		#print self.new_descriptors
 
-		detect_im_visualize = detect_im.copy()
-		# convert to (x,y,w,h)
-		track_roi = (self.last_detection[0],self.last_detection[1],self.last_detection[2]-self.last_detection[0],self.last_detection[3]-self.last_detection[1])
+		desc, training_descriptors = self.extractor.compute(img_bw,training_keypoints)
+		#finds the k best matches for each descriptor from a query set. (http://docs.opencv.org/modules/features2d/doc/common_interfaces_of_descriptor_matchers.html)
+		matches = self.matcher.knnMatch(self.new_descriptors, training_descriptors, k=2)
+		#print matches
+		#print dir(matches[0][0])
+		#print matches[0][0].imgIdx
+		good_matches = []
+		for m,n in matches: 
+			#makes sure distance to closest match is sufficiently better than to 2nd closest
+			if (m.distance < self.ratio_threshold*n.distance and
+				training_keypoints[m.trainIdx].response > self.corner_threshold):
+				#print 'finding matches'
+				good_matches.append((m.queryIdx, m.trainIdx))
 
-		# Setup the termination criteria, either 10 iteration or move by atleast 1 pt
-		# this is done to plot intermediate results of mean shift
-		for max_iter in range(1,10):
-			term_crit = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, max_iter, 1 )
-			(ret, intermediate_region) = cv2.meanShift(detect_im,detect_region,term_crit)
-			cv2.rectangle(detect_im_visualize,(intermediate_region[0],intermediate_region[1]),(intermediate_region[0]+intermediate_region[2],intermediate_region[1]+intermediate_region[3]),max_iter/10.0,2)
+		#print 'good matches type: %s' %type(good_matches)
 
-		self.last_detection = [intermediate_region[0],intermediate_region[1],intermediate_region[0]+intermediate_region[2],intermediate_region[1]+intermediate_region[3]]
-		cv2.imshow("detect_win",detect_im_visualize)
+		#print 'good matches: %s' %good_matches
 
+		self.matching_new_pts = np.zeros((len(good_matches),2))
+		self.matching_training_pts = np.zeros((len(good_matches),2))
+
+		track_im = np.zeros(img_bw.shape)
+		for idx in range(len(good_matches)):
+			match = good_matches[idx]
+			self.matching_new_pts[idx,:] = self.new_keypoints[match[0]].pt
+			self.matching_training_pts[idx,:] = training_keypoints[match[1]].pt
+			track_im[training_keypoints[match[1]].pt[1], training_keypoints[match[1]].pt[0]] = 1.0
+
+		#print 'matching_keypoint type: %s' %type(self.matching_new_pts)
+		#print 'matching_keypoints: %s' %self.matching_new_pts
 
 		
+		track_im_visualize = track_im.copy()
+
+		#converting to (x,y,z,h)\
+		track_region = (self.last_detection[0],self.last_detection[1],self.last_detection[2]-self.last_detection[0],self.last_detection[3]-self.last_detection[1])
+
+		#setup criterial for termination, either 10 iteritation or move at least 1 pt
+		#done to plot intermediate results of mean shift
+		for max_iter in range(1,10): 
+			term_crit = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, max_iter, 1 )
+			(ret, intermediate_region) = cv2.meanShift(track_im,track_region,term_crit)
+			cv2.rectangle(track_im_visualize,(intermediate_region[0],intermediate_region[1]),(intermediate_region[0]+intermediate_region[2],intermediate_region[1]+intermediate_region[3]),max_iter/10.0,2)
+		
+		self.last_detection = [intermediate_region[0],intermediate_region[1],intermediate_region[0]+intermediate_region[2],intermediate_region[1]+intermediate_region[3]]
+
+		cv2.imshow("track_win", track_im_visualize)
+
+		#compare image of the shoe to shoe database (color histogram/SIFT technique) (this may be very time-consuming)
+		#pick shoe by image of shoe with the most keypoints
+		#return location of shoes (I think it might be easier to use one location of a shoe)
+
+		#xpos = 0
+		#distance = 0
+		#print 'xpos,distance'
+		#return xpos,distance
+
 	def approach_shoe(self,msg):
 		# making the robot stop if it gets within a meter of the shoe (the thing directly in front of it)
+		print "approach_shoe"
+
 		liner = 0
 		angular = 0 
 		#this needs to be checked over when I am less tired! Probably should be put directly into the "stalk" function  
@@ -145,6 +229,7 @@ class ShoeStalker:
 					self.magnitude[degree] = math.sqrt(data_x**2 + data_y**2) 
 					pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
 					
+
 	def stalk(self,msg): 
 		print 'stalk'
 		#move robot so shoe is in center of image (or will it already be like this?)
@@ -203,6 +288,17 @@ class ShoeStalker:
 				self.last_detection = self.new_region
 				cv2.circle(self.new_img_visualize,(x,y),5,(255,0,0),5)
 				self.state = self.SELECTING_NEW_IMG
+				self.get_new_keypoints()
+				self.get_new_histogram()
+
+	def set_corner_threshold_callback(self, thresh):
+		""" Sets the threshold to consider an interest point a corner.  The higher the value
+			the more the point must look like a corner to be considered """
+		self.set_corner_threshold(thresh/1000.0)
+
+	def set_ratio_threshold_callback(self, ratio):
+		""" Sets the ratio of the nearest to the second nearest neighbor to consider the match a good one """
+		self.set_ratio_threshold(ratio/100.0)
 
 	def set_corner_threshold_callback(self, thresh):
 		""" Sets the threshold to consider an interest point a corner.  The higher the value
@@ -215,7 +311,7 @@ class ShoeStalker:
 
 
 	def is_in_bounding_box(self, x,y,w,h,kp):
-		print 'kp: %s' %kp
+		#print 'kp: %s' %kp
 		if kp[0] > x and kp[0] < w and kp[1] > y and kp[1] < h:
 			#print 'x: %s, y: %s, w: %s, h: %s, kp.pt[0]: %s, kp.pt[1]: %s' %(x,y,w,h,kp.pt[0],kp.pt[1])
 			#print 'True'
@@ -229,7 +325,6 @@ if __name__ == '__main__':
 		rospy.init_node('capture', anonymous=True)
 		n = ShoeStalker('SIFT')
 		n.image_stream = False #flag for 
-
 
 		# rospy.init_node('ShoeStalker', anonymous = True) # don't need?
 		#pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
@@ -255,6 +350,7 @@ if __name__ == '__main__':
 
 				if n.state == n.SELECTING_NEW_IMG:
 					if n.new_region != None:
+						n.track(frame)
 						n.detecting(frame)
 
 						# add the new image to the side
@@ -264,6 +360,16 @@ if __name__ == '__main__':
 						combined_img[0:(n.new_region[3]-n.new_region[1]),frame.shape[1]:,:] = (
 								n.new_img[n.new_region[1]:n.new_region[3],
 												  n.new_region[0]:n.new_region[2],:])
+
+						first_img = n.new_img[n.new_region[1]:n.new_region[3],
+												  n.new_region[0]:n.new_region[2],:]
+
+
+						crop_img = n.new_img[n.last_detection[1]:n.last_detection[3],n.last_detection[0]:n.last_detection[2],:]
+
+						n.histcompare(first_img,crop_img)
+
+						#cv2.compareHist(h1,h2,method=CV_COMP_CORREL)
 						# plot the matching points and correspondences
 						for i in range(n.matching_new_pts.shape[0]):
 							#print 'please work'
@@ -282,11 +388,11 @@ if __name__ == '__main__':
 							#print 'hello'
 							cv2.circle(combined_img,(int(pt.pt[0]+frame.shape[1]),int(pt.pt[1])),2,(255,0,0),1)
 						cv2.rectangle(combined_img,(n.last_detection[0],n.last_detection[1]),(n.last_detection[2],n.last_detection[3]),(0,0,255),2)
-						print 'n.nmatching_new_pts: %s' %n.matching_training_pts
+						#print 'n.nmatching_new_pts: %s' %n.matching_training_pts
 						#top-left corner: x1, y1 bottom-right corner: x2, y2
-						print 'last detection 0: %s, last detection 1: %s, last detection 2: %s, last detection 3: %s' %(n.last_detection[0],n.last_detection[1],n.last_detection[2],n.last_detection[3])
+						#print 'last detection 0: %s, last detection 1: %s, last detection 2: %s, last detection 3: %s' %(n.last_detection[0],n.last_detection[1],n.last_detection[2],n.last_detection[3])
 						kp_in_box = filter(lambda x: n.is_in_bounding_box(n.last_detection[0],n.last_detection[1],n.last_detection[2],n.last_detection[3],x),n.matching_training_pts.tolist())
-						print len(kp_in_box)
+						#print len(kp_in_box)
 						cv2.imshow("ShoeImage",combined_img)
 					else:
 						cv2.imshow("ShoeImage",frame)
