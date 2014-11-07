@@ -64,6 +64,14 @@ class ShoeStalker:
 	def scan_received(self,msg):
 		pass
 
+	def get_query_histogram(self):
+		# set up the ROI for tracking
+		roi = self.new_img[self.new_region[1]:self.new_region[3],self.new_region[0]:self.new_region[2],:]
+		hsv_roi =  cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+		# play with the number of histogram bins by changing histSize
+		self.query_hist = cv2.calcHist([hsv_roi],[0],mask=None,histSize=[256],ranges=[0,255])
+		cv2.normalize(self.query_hist,self.query_hist,0,255,cv2.NORM_MINMAX)
+
 	def capture(self,msg):
 		# IMAGE FROM NEATO 
 		#useful link for image types http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
@@ -271,9 +279,6 @@ class ShoeStalker:
 			#print 'False'
 			return False
 
-
-
-
 if __name__ == '__main__':
 	try:
 		rospy.init_node('capture', anonymous=True)
@@ -306,6 +311,7 @@ if __name__ == '__main__':
 				if n.state == n.SELECTING_NEW_IMG:
 					if n.new_region != None:
 						n.detecting(frame)
+						n.track(frame)
 
 						# add the new image to the side
 						combined_img = np.zeros((frame.shape[0],frame.shape[1]+(n.new_region[2]-n.new_region[0]),frame.shape[2]),dtype=frame.dtype)
