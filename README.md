@@ -8,6 +8,6 @@ This is a course assignment for Computational Robotics, taught at Olin College i
 The main file, which is working code, is called ShoeStalker_histogram.py.
 
 #Contributors
-Jasper Chen
-Amanda Sutherland
-Claire Diehl
+* Jasper Chen
+* Amanda Sutherland
+* Claire Diehl
