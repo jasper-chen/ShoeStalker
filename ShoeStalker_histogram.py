@@ -46,9 +46,9 @@ class ShoeStalker:
 		self.kp_last_detection = None
 		self.new_descriptors = None
 		rospy.Subscriber("scan", LaserScan, self.scan_received, queue_size=1)
-		self.pub=rospy.Publisher('cmd_vel',Twist,queue_size=1)
+		self.pub = rospy.Publisher('cmd_vel',Twist,queue_size=1)
 		self.new_keypoints = None
-		self.magnitude=None
+		self.magnitude = None
 		self.xpos = None
 
 		self.corner_threshold = 0.0
@@ -65,19 +65,25 @@ class ShoeStalker:
 			print "ERROR!"
 			pass	
 
-	def scan_received(self,msg):
-		pass
-
 	def histcompare(self,im1,im2):
+		"""
+		Compares two images and rates their similarity by color
+		
+		Author: Jasper
+		Args:
+			im1 (object) : cropped image selected by user
+			im2 (object) : real-time image from robot
+		
+		Returns:
+			float: a color similarity metric between two histograms of images 
+		"""
+		
 		hist1 = cv2.calcHist([im1],[0],mask=None,histSize=[256],ranges=[0,255])
 		hist2 = cv2.calcHist([im2],[0],mask=None,histSize=[256],ranges=[0,255])
 		cv2.normalize(hist1,hist1,0,255,cv2.NORM_MINMAX)
 		cv2.normalize(hist2,hist2,0,255,cv2.NORM_MINMAX)
-		#print cv2.compareHist(hist1,hist2,cv.CV_COMP_CORREL)
 		return cv2.compareHist(hist1,hist2,cv.CV_COMP_CORREL)
-
-
-
+		
 	def track(self,im):
 		im_hsv = cv2.cvtColor(im,cv2.COLOR_BGR2HSV)
 		track_im = cv2.calcBackProject([im_hsv],[0],self.new_hist,[0,255],1)
@@ -129,7 +135,6 @@ class ShoeStalker:
 	def get_new_keypoints(self):
 		# #makes new image black and white
 		new_img_bw = cv2.cvtColor(self.new_img,cv2.COLOR_BGR2GRAY)
-		print 'maybe?'#new_img_bw.shape
 		#detect keypoints
 		keyp = self.detector.detect(new_img_bw)
 		#compare keypoints
@@ -144,11 +149,6 @@ class ShoeStalker:
 		#reassign keypoints and descriptors
 		self.new_keypoints = keyp
 		self.new_descriptors = describe
-		#print keyp
-		#print 'first keypoint point: %s' %keyp[0].pt
-
-		#print 'keypoints, describe'
-		#print keyp,describex
 
 	def detecting(self,im):
 		#print 'detecting'
@@ -156,16 +156,11 @@ class ShoeStalker:
 		#Pauls Code - went through it and changed it to fit ours. will probably need further alterations
 		img_bw = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
 		training_keypoints = self.detector.detect(img_bw)
-		#print training_keypoints
-		#print "new_descriptors"
-		#print self.new_descriptors
 
 		desc, training_descriptors = self.extractor.compute(img_bw,training_keypoints)
 		#finds the k best matches for each descriptor from a query set. (http://docs.opencv.org/modules/features2d/doc/common_interfaces_of_descriptor_matchers.html)
 		matches = self.matcher.knnMatch(self.new_descriptors, training_descriptors, k=2)
-		#print matches
-		#print dir(matches[0][0])
-		#print matches[0][0].imgIdx
+
 		good_matches = []
 		for m,n in matches: 
 			#makes sure distance to closest match is sufficiently better than to 2nd closest
@@ -173,11 +168,7 @@ class ShoeStalker:
 				training_keypoints[m.trainIdx].response > self.corner_threshold):
 				#print 'finding matches'
 				good_matches.append((m.queryIdx, m.trainIdx))
-
-		#print 'good matches type: %s' %type(good_matches)
-
-		#print 'good matches: %s' %good_matches
-
+				
 		self.matching_new_pts = np.zeros((len(good_matches),2))
 		self.matching_training_pts = np.zeros((len(good_matches),2))
 
@@ -188,10 +179,6 @@ class ShoeStalker:
 			self.matching_training_pts[idx,:] = training_keypoints[match[1]].pt
 			track_im[training_keypoints[match[1]].pt[1], training_keypoints[match[1]].pt[0]] = 1.0
 
-		#print 'matching_keypoint type: %s' %type(self.matching_new_pts)
-		#print 'matching_keypoints: %s' %self.matching_new_pts
-
-		
 		track_im_visualize = track_im.copy()
 
 		#converting to (x,y,z,h)\
@@ -214,8 +201,6 @@ class ShoeStalker:
 
 		#xpos = 0
 		#distance = 0
-		#print 'xpos,distance'
-		#return xpos,distance
 
 	def approach_shoe(self,msg):
 		# making the robot stop if it gets within a meter of the shoe (the thing directly in front of it)
@@ -223,36 +208,36 @@ class ShoeStalker:
 
 		liner = 0
 		angular = 0 
-		#this needs to be checked over when I am less tired! Probably should be put directly into the "stalk" function  
 		for degree in range():
 				if msg.ranges[degree] > 340.0 and msg.ranges[degree] < 20.0:
 					#get position of laser points
 					data_x = self.odom_pose[0] + msg.ranges[degree]*math.cos(degree*math.pi/180.0 + self.odom_pose[2])
-					data_y = self.odom_pose[1] + msg.ranges[degree]*math.sin(degree*math.pi/180+self.odom_pose[2])
+					data_y = self.odom_pose[1] + msg.ranges[degree]*math.sin(degree*math.pi/180 + self.odom_pose[2])
 					self.magnitude[degree] = math.sqrt(data_x**2 + data_y**2) 
 					pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
 					
 
-	def stalk(self,hist,kp): 
-		#print 'stalk'
-		#move robot so shoe is in center of image (or will it already be like this?)
-		#move towards the shoes
-
-		#xpos,distance = self.detect(self.new_image)
-
+	def stalk(self,hist,kp):
+		"""
+		The arbitrater of the robot's movements 
+		Move robots so shoe is in center of image
+		
+		Author: Jasper
+		Args:
+			hist (float): a similarity metric between two color histograms of an original image and real-time image
+			kp (float): the ratio between keypoints in bounding box over keypoints in real-time image
+			
+		Functions: 
+			Send movement commands based on keypoint and histogram values
+		"""
 		if kp > .5:
-			print 'kp'
 			self.xpos = (((self.kp_last_detection[2]- self.kp_last_detection[0])/2)+self.kp_last_detection[0])
 		elif hist > .9:
-			print 'hist'
 			self.xpos = (((self.hist_last_detection[2]- self.hist_last_detection[0])/2)+self.hist_last_detection[0])
 		else:
 			self.lostshoe()
-
-		#print 'xpos'
-		#print self.xpos 
+		
 		if self.xpos == None:
-			#print "no shoe"
 			linear = 0
 			angular = 0
 		elif self.xpos > 155:
@@ -260,22 +245,22 @@ class ShoeStalker:
 			angular = self.xpos * -.002
 		elif self.xpos < 145:
 			linear = .05
-			angular =(140-self.xpos) * .002
+			angular = (140-self.xpos) * .002
 		elif self.xpos <= 155 and self.xpos >= 145:
 			linear = .1
 			angular = 0
-		#print linear, angular
 
 		self.pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
 
 	def lostshoe(self):
-		"""refinds a lost shoe, turn towards location of last shoe. currently just turning"""
-		print 'lost shoe'
+		"""
+		Refinds a lost shoe, turn towards location of last shoe.
+		
+		written by Jasper"""
 
 		linear = 0
 		angular = .1
 		self.pub.publish(Twist(linear=Vector3(x=linear),angular=Vector3(z=angular)))
-
 
 	# def run(self): #perhaps should move to if __name__ == '__main__', but this is how it is in the fixed image code
 	# 	print 'run'
@@ -293,20 +278,22 @@ class ShoeStalker:
 	# 	rospy.spin()
 
 	def mouse_event(self,event,x,y,flag,im):
+		"""Logic for creating bounding box around image"""
 		if event == cv2.EVENT_FLAG_LBUTTON:
 			if self.state == self.SELECTING_NEW_IMG:
+				#first mouse click
 				self.new_img_visualize = frame.copy()
 				self.new_img = frame
 				self.new_region = None
 				self.state = self.SELECTING_REGION_POINT_1
 			elif self.state == self.SELECTING_REGION_POINT_1:
+				#second mouse click to create bounding box
 				self.new_region = [x,y,-1,-1]
 				cv2.circle(self.new_img_visualize,(x,y),5,(255,0,0),5)
 				self.state = self.SELECTING_REGION_POINT_2
 			else:
-				print 'get new keypoints'
+				#get new keypoints
 				self.new_region[2:] = [x,y]
-				print 'new region %s' %self.new_region
 				self.kp_last_detection = self.new_region
 				self.hist_last_detection = self.new_region
 				cv2.circle(self.new_img_visualize,(x,y),5,(255,0,0),5)
@@ -334,49 +321,36 @@ class ShoeStalker:
 
 
 	def is_in_bounding_box(self, x,y,w,h,kp):
-		#print 'kp: %s' %kp
 		if kp[0] > x and kp[0] < w and kp[1] > y and kp[1] < h:
-			#print 'x: %s, y: %s, w: %s, h: %s, kp.pt[0]: %s, kp.pt[1]: %s' %(x,y,w,h,kp.pt[0],kp.pt[1])
-			#print 'True'
 			return True
 		else:
-			#print 'False'
 			return False
 
 if __name__ == '__main__':
 	try:
 		rospy.init_node('capture', anonymous=True)
 		n = ShoeStalker('SIFT')
-		n.image_stream = False #flag for 
-
-		# rospy.init_node('ShoeStalker', anonymous = True) # don't need?
-		#pub=rospy.Publisher('cmd_vel',Twist,queue_size=10)
-		#pub.publish('a')
-		#rospy.spin()
-
-		#capture = cv2.VideoCapture(0)
-		#ret, frame = capture.read()
-		#cap = cv2.VideoCapture(0)
+		n.image_stream = False
 		cv2.namedWindow('UI')
 		cv2.createTrackbar('Corner Threshold', 'UI', 0, 100, n.set_corner_threshold_callback)
 		cv2.createTrackbar('Ratio Threshold', 'UI', 100, 100, n.set_ratio_threshold_callback)
 		cv2.namedWindow("ShoeImage")
 		cv2.setMouseCallback("ShoeImage", n.mouse_event) #listen for mouse clicks on window
 
+		#written/modified by Jasper ~~~
 		while not(rospy.is_shutdown()):
 			if n.image_stream == False:
-				print 'nope'
+				pass
 			else:
-				# n.get_new_keypoints() # had to comment out to get have code run for image capture 11/1
-				# ret, frame = cap.read()
 				frame = np.array(cv2.resize(n.new_shoeimg,(n.new_shoeimg.shape[1]/2,n.new_shoeimg.shape[0]/2)))
 
-				if n.state == n.SELECTING_NEW_IMG:
+				if n.state == n.SELECTING_NEW_IMG: 
+					#if bounding box created
 					if n.new_region != None:
 						n.track(frame)
 						n.detecting(frame)
 
-						# add the new image to the side
+						# add the new image in bounding box to the side
 						combined_img = np.zeros((frame.shape[0],frame.shape[1]+(n.new_region[2]-n.new_region[0]),frame.shape[2]),dtype=frame.dtype)
 						combined_img[:,0:frame.shape[1],:] = frame
 
@@ -386,45 +360,32 @@ if __name__ == '__main__':
 
 						first_img = n.new_img[n.new_region[1]:n.new_region[3],
 												  n.new_region[0]:n.new_region[2],:]
-
+						#initial cropped image
 
 						crop_img = n.new_img[n.kp_last_detection[1]:n.kp_last_detection[3],n.kp_last_detection[0]:n.kp_last_detection[2],:]
-
+						#real-time image in bounding box
 						hist_heuristic = n.histcompare(first_img,crop_img)
 
-						#cv2.compareHist(h1,h2,method=CV_COMP_CORREL)
 						# plot the matching points and correspondences
 						for i in range(n.matching_new_pts.shape[0]):
-							#print 'please work'
-							#print 'matching x: %s' %n.matching_training_pts[i,0]
-							#print 'matching y: %s' %n.matching_training_pts[i,1]							
 							cv2.circle(combined_img,(int(n.matching_training_pts[i,0]),int(n.matching_training_pts[i,1])),2,(255,0,0),2)
 							#print 'size of training pts: %s' %len(n.matching_training_pts)
 							cv2.line(combined_img,(int(n.matching_training_pts[i,0]), int(n.matching_training_pts[i,1])),
 												  (int(n.matching_new_pts[i,0]+frame.shape[1]),int(n.matching_new_pts[i,1])),
 												  (0,255,0))
 
-							#print 'hello?'
-						#print 'new_keypoints'
-						#print n.new_keypoints
 						for pt in n.new_keypoints:
-							#print 'hello'
 							cv2.circle(combined_img,(int(pt.pt[0]+frame.shape[1]),int(pt.pt[1])),2,(255,0,0),1)
 						cv2.rectangle(combined_img,(n.kp_last_detection[0],n.kp_last_detection[1]),(n.kp_last_detection[2],n.kp_last_detection[3]),(0,0,255),2)
-						#print 'n.nmatching_new_pts: %s' %n.matching_training_pts
 						#top-left corner: x1, y1 bottom-right corner: x2, y2
-						#print 'last detection 0: %s, last detection 1: %s, last detection 2: %s, last detection 3: %s' %(n.last_detection[0],n.last_detection[1],n.last_detection[2],n.last_detection[3])
+						
+						
 						kp_in_box = filter(lambda x: n.is_in_bounding_box(n.kp_last_detection[0],n.kp_last_detection[1],n.kp_last_detection[2],n.kp_last_detection[3],x),n.matching_training_pts.tolist())
-						#print len(kp_in_box)
-						#print 'kp_in_box: %s' %len(kp_in_box)
-						#print 'n.matching_training_pts: %s' %len(n.matching_training_pts)
 						ratio_kp = float(len(kp_in_box))/int(len(n.matching_training_pts))
-						#print int(lep_in_box)/int(n.matching_training_pts)
 						cv2.imshow("ShoeImage",combined_img)
 
-
-
 						n.stalk(hist_heuristic,ratio_kp)
+						#~~~
 					else:
 						cv2.imshow("ShoeImage",frame)
 				else:
